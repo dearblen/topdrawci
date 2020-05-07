@@ -1,0 +1,359 @@
+body {
+    width: 1280px;
+    height: 720px;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    font-family: '微软雅黑';
+    position: relative;
+    overflow: hidden;
+}
+.hidden {
+    display: none !important
+}
+.cat_focus{
+	background-position: left bottom !important;
+}
+.progress_focus_active{
+	background-position: left bottom !important;
+}
+#focus_table {
+    transition-duration: 0ms;
+    -webkit-transition-duration: 0ms
+}
+.programName{
+	position: absolute;
+	width: 1280px;
+	height: 35px;
+	line-height: 35px;
+	top: 26px;
+	left: 15px;
+	font-family: "微软雅黑";
+	font-size: 28px;
+	color: #fff;
+}
+.tryTitle{
+	position: absolute;
+	width: 300px;
+	height: 33px;
+	top: 640px;
+	left: 376px;
+	background: url("../image/vPlayerFullScreenNew/title.png") no-repeat;
+}
+.order_button{
+	position: absolute;
+	top: 620px;
+	left: 710px;
+	width: 206px;
+	height: 71px;
+	background: url("../image/vPlayerFullScreenNew/order_button.png") no-repeat;
+}
+.play_control{
+	position: absolute;
+	width: 1200px;
+	height: 200px;
+	top: 539px;
+	left: 168px;
+}
+.progress_bar_container{
+	position: absolute;
+	width: 900px;
+	height: 8px;
+	top: 135px;
+	left: 0px;
+	background: url("../image/vPlayerFullScreenNew/progress_bar_container.png")no-repeat;
+}
+.progress_focus{
+	position: absolute;
+	width: 81px;
+	height: 70px;
+	top: 100px;
+	background: url("../image/vPlayerFullScreenNew/progress_focus.png") left top no-repeat;
+}
+.progress_bar_base{
+	position: absolute;
+	width: 886px;
+	height: 8px;
+	top: 0px;
+	left: 0px;
+}
+.progress_bar_value{
+	float: left;
+	width: 50px;
+	height: 12px;
+	background: url("../image/vPlayerFullScreenNew/progress_bar_circle.png") no-repeat;
+}
+.progress_bar_value_left{
+	float: left;
+	width: 5px;
+	height: 12px;
+	background: url("../image/vPlayerFullScreenNew/progress_bar_circle_left.png") no-repeat;
+}
+.progress_bar_value_right{
+	float: left;
+	width: 5px;
+	height: 12px;
+	background: url("../image/vPlayerFullScreenNew/progress_bar_circle_right.png") no-repeat;
+}
+.play_or_pause{
+	position: absolute;
+	width: 86px;
+	height: 88px;
+	top: 0px;
+	left: 429px;
+}
+.play_common{
+	background: url("../image/vPlayerFullScreenNew/play.png")left top no-repeat;
+}
+.pause_common{
+	background: url("../image/vPlayerFullScreenNew/stop.png")left top no-repeat;
+}
+.on_episode{
+	position: absolute;
+	top: 0px;
+	left: 249px;
+	width: 86px;
+	height: 88px;
+	background: url("../image/vPlayerFullScreenNew/on_episode.png")left top no-repeat;
+}
+.next_episode{
+	position: absolute;
+	top: 0px;
+	left: 609px;
+	width: 86px;
+	height: 88px;
+	background: url("../image/vPlayerFullScreenNew/next_episode.png") left top no-repeat;
+}
+.cycle{
+	position: absolute;
+	width: 59px;
+	height: 59px;
+	top: 50px;
+	left: 915px;
+	background: url("../image/vPlayerFullScreenNew/cycle.png") left top no-repeat;
+}
+.cycled{
+	position: absolute;
+	width: 59px;
+	height: 59px;
+	top: 50px;
+	left: 915px;
+	background: url("../image/vPlayerFullScreenNew/cycled.png") left top no-repeat;
+}
+.collect{
+	position: absolute;
+	top: 50px;
+	left: 990px;
+	width: 59px;
+	height: 59px;
+	background: url("../image/vPlayerFullScreenNew/collect.png") left top no-repeat;
+}
+.collected{
+	background: url("../image/vPlayerFullScreenNew/collected.png") left top no-repeat;
+}
+.duration {
+    position: absolute;
+    left: 905px;
+    top: 120px;
+    font-size: 24px;
+    color: #ffffff;
+    font-family: "微软雅黑";
+    white-space: nowrap;
+}
+.current_time,.total_duration{
+	float: left;
+}
+.duration_slash {
+    float: left;
+    margin: 0px 5px 0px 5px;
+}
+.contact{
+	position: absolute;
+	top: 259px;
+	left: 73px;
+	width: 1158px;
+	height: 268px;
+	/*overflow: hidden;*/
+}
+.contact_title{
+	font-family: "微软雅黑";
+	font-size: 22px;
+	color: #FFFFFF;
+}
+.contact_content_container{
+	width: 274px;
+	height: 168px;
+	float: left;
+	margin-right: 15px;
+}
+.img_container{
+	width: 274px;
+	height: 168px;
+}
+.contact_content_title{
+	position: absolute;
+    top: 164px;
+	color: #fff;
+    font-size: 22px;
+    font-family: "微软雅黑";
+    width: 274px;
+    height: 35px;
+    line-height: 35px;
+    overflow: hidden;
+    /*background: rgba(0, 0, 0, 0.6);*/
+   	background: url("../image/program/text_bg.png") no-repeat;
+    background-size: 274px auto;
+}
+.contact_content_active{
+	top: 129px !important;
+}
+.contact_inner{
+	width: 1000px;
+    height: 35px;
+    float: left;
+    overflow: hidden;
+}
+.title_width{
+	width: 274px;
+}
+.center{
+	text-align: center !important;
+}
+.contact_first{
+	white-space: nowrap;
+    float: left;
+    height: 35px;
+}
+.contact_second{
+	float: left;
+    padding-left: 20px;
+    visibility: hidden;
+    height: 35px
+}
+.marquee_4ut{
+	position: absolute;
+    width: 265px;
+    height: 35px;
+    top: 0;
+    left: 0;
+    line-height: 35px;
+    color: #fff;
+    font-size: 22px;
+    overflow: hidden;
+}
+.recommend_vertical{
+	position: absolute;
+	top: 207px;
+	left: 161px;
+	width: 990px;
+	height: 250px;
+	overflow: hidden;
+}
+.recommend_content_container{
+	float: left;
+	width: 180px;
+	height: 220px;
+	margin-right: 15px;
+}
+.recommendList_img{
+	width: 180px;
+	height: 220px;	
+}
+.recommend_content_title{
+	position: absolute;
+    top: 217px;
+	color: #fff;
+    font-size: 22px;
+    font-family: "微软雅黑";
+    width: 180px;
+    height: 35px;
+    line-height: 35px;
+    overflow: hidden;
+    /*background: rgba(0, 0, 0, 0.6);*/
+   	background: url("../image/program/text_bg.png") no-repeat;
+    background-size: 184px 35px;
+}
+.recommend_content_Active{
+	top: 184px !important;
+}
+.recommend_inner{
+	width: 2000px;
+    height: 35px;
+    float: left;
+    overflow: hidden;
+}
+.recommend_titleWidth{
+	width: 180px;
+}
+.recommend_first{
+	white-space: nowrap;
+    float: left;
+    height: 35px;
+}
+.recommend_second{
+	float: left;
+    padding-left: 20px;
+    visibility: hidden;
+    height: 35px
+}
+.marquee_4utt{
+	position: absolute;
+    width: 180px;
+    height: 35px;
+    top: 0;
+    left: 0;
+    line-height: 35px;
+    color: #fff;
+    font-size: 22px;
+    overflow: hidden;
+}
+.sohu_prompt{
+	position: absolute;
+	width: 1280px;
+    height: 720px;
+    top: 0px;
+    left: 0px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.9);
+    /*z-index: 1;*/
+}
+.sohu_logo{
+	position: absolute;
+	top: 204px;
+	left: 495px;
+	width: 242px;
+	height: 286px;
+	background: url("../image/vPlayerFullScreenNew/suhuLogo.png") no-repeat;
+}
+.friendlyPrompt{
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    background: url(../image/program/friendlyPrompt.jpg) no-repeat;
+}
+.friendlyFocus{
+    width: 299px;
+    height: 111px;
+    position: absolute;
+    top: 420px;
+    left: 460px;
+    background: url(../image/program/back2Index.png) no-repeat;
+    background-position: 0 -111px;
+}
+.focusActive{
+    background-position: 0 0 !important; 
+}
+.mark{
+	width: 1280px;
+	height: 720px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	/* background: #000000; */
+	background: transparent;
+}
+.backgroundType{
+	background: transparent !important;
+}

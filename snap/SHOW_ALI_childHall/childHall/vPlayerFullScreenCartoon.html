@@ -1,0 +1,2928 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title>播放器</title>
+		<meta name="page-view-size" content="1280*720">
+		<link rel="stylesheet" href="css/common.css?v=7" type="text/css" />
+		<link rel="stylesheet" href="css/vPlayerFullScreenCartoonNew.css?v=7" type="text/css" />
+		<!--外部JS-->
+		<script type="text/javascript" src="./js/json2.js"></script>
+		<script type="text/javascript" src="./js/jsrender.js"></script>
+		<!--配置文件-->
+		<script type="text/javascript" src="./config/config.js?v=5"></script>
+		<script src="config/circumstance.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript" src="config/businessParam.js"></script>
+		<!--内部JS-->
+		<script type="text/javascript" src="./js/iptv.utility.js?v=5"></script>
+		<script type="text/javascript" src="./js/iptv.focus.js?v=5"></script>
+		<script type="text/javascript" src="./js/iptv.cinema.js?v=11"></script>
+		<script type="text/javascript" src="./js/marquee.js"></script>
+		<script type="text/javascript" src="./js/NativeMediaPlayer.js"></script>
+		<script type="text/javascript" src="js/probe.js?v=1" ></script>
+		<script>
+			var UI = 'vPlayerFullScreen';
+			var g_oInit = {};
+			var g_bIsPlayForwarding=false;
+			var g_iBackStatus = ''; // 判断返回
+			var g_iPlayStartTime=0;
+			var g_fScaleFactor = 1.0;
+			var g_bIsFocusInited = false;
+			var g_proCId = '53'; //推荐分类Id
+			var g_iFreeStatus = getQueryStringByName('freeStatus'); //判断影片是否免费
+			var g_strCollectionDefaultId = 0;
+			var g_strCollectionId = 0;
+			var g_iPauseNum = 0;
+			var g_bIsBackFlag = false;
+			var g_str2name='';
+       		var g_str2Id='';
+//     		var g_strPlayURL = "";
+
+			var g_strId = '';
+			var g_strName = '';
+			var g_strMediaImg = '';
+			var g_strMediaCode = '';
+			var g_strEpisodeId = '';
+			var g_strEpisodeName = '';
+			var g_iEpisodeIndex = 0;
+			var g_iEpisodeCount = 0; //总剧集数
+			var g_strCode = '';
+			var g_strAppId = '';
+			var g_iProgramType = -1; //1为电影,2为电视剧
+			var g_iShiboTime = 30; //试播时间（电影）
+			var g_timeouterFocus = null;
+
+			var g_mediaPlayer = null;
+			var g_iVolume = 50; //声音0－100
+
+			var g_bIsFirstMediaRequest = true;
+			var g_mediaPlayer = null;
+			var g_bFocusInited = false;
+
+			var g_bIsPlaying = false; //判断暂停和播放
+			var g_bIsHideOrderControl = false;
+			var g_bIsHidePlayControl = true;
+			var g_bIsInitFlag = true;
+			var g_timerPlayControl = null;
+			var g_timerPlaylist = null;
+			var g_timerVolumeControl = null;
+
+			var g_iHiddenDuration = 6000; //ms
+
+			var g_iProgramDuration = 0; //总时长
+
+			var g_iSpeed = 1; //播放器速度
+			var g_iMaxSpeedMultiple = 8; //最大倍数因子
+
+			var g_iPlayProgress = 0;
+			var g_iPlayProgressStep = 1;
+
+			// -2：快退  -1：降音量    0：什么都不按   1：升音量   2：快进
+			var g_iFastForwardContinuePress = 0;
+			var g_iFastBackwardContinuePress = 0;
+			var g_iVolumnUpContinuePress = 0;
+			var g_iVolumnDownContinuePress = 0;
+
+			var g_bInContinuePress = false; //是否在持续按键状态
+			var g_iContinueDuration = 800; //ms
+			var g_iFakePressInterval = 600; //ms  //模拟按键的间隔时间
+
+			var g_timerFastForwardContinuePress = null; //按键持续计时器
+			var g_timerFastBackwardContinuePress = null; //按键持续计时器
+			var g_timerVolumnUpContinuePress = null; //按键持续计时器
+			var g_timerVolumnDownContinuePress = null; //按键持续计时器
+			var g_timerPlayOrPauseContinuePress = null; //按键持续计时器
+			var g_timerPrompt = null; //提示上键可呼出菜单
+
+			var g_intervalFastForwardFakePress = null; //有些盒子上模拟快进长按计时器
+			var g_intervalFastBackwardFakePress = null; //有些盒子上模拟快进长按计时器
+
+			var g_timerDurationInfoDelay = null; //首次获取媒体信息需要等Load
+
+			var g_iRequestedPlayingSongIndex = 0; //请求过播放地址还未开始播放的歌
+			var g_strRequestedPlayingSongId = null;
+			var g_iCurrentPlayingSongIndex = 0; //这在中兴华为模板库里是指得整个PlayList的索引，在VIS-EPG播放列表里则只是本页的索引;
+			var g_strCurrentPlayingSongId = null;
+			var g_iPrepared2PlaySongIndex = 0; //翻页后开始要播放的歌
+
+			//var g_iRequestedPlayingSongPageIndex=1;
+			var g_iCurrentPlayingSongPageIndex = 1;
+
+			var g_iNextPlayingSongIndex = 1;
+			var g_strNextPlayingSongId = null;
+			var g_iRemovingPlayListItemIndex = 0;
+			var g_strRemovingPlayListItemId = null;
+
+			var g_intervalPlaying = null; //更新时间间隔1s
+			var g_iPlayMode=2;
+
+			var g_bIsPlayingDataLocked = false;
+			var g_bDoesProgramDurationGot = false; //是否拿到了总时长
+
+			var g_mediaPlayerInstanceId = null;
+
+			var g_iMediaDurationGetCount = 0; //拿到总时长的次数
+
+			var g_iTimeInputStatus = 0; //1-输入状态 
+
+			var g_iAfterLoadStatus = -1; //-1-什么也不干 1-播放Index=1的歌 2-播放Index=g_iCurrentPlayingSongIndex的歌
+
+			var g_iPlayListSize = -1;
+			var g_strIds = '';
+
+			var g_intervalMarqueeSongName = null;
+
+			var contactName = 'contactName';
+			var g_bContactListDataInited = false;
+			var g_bAddBookMarkStatus = false;
+			var g_bIsGetBookMarkDataInited = false;
+			var g_bGoToPlay = false;
+			var g_strParentCId = '252'; //免费分类的父Id来判断节目节目是否免费
+			var g_isGoToCycle = false;
+			var g_strSouhuContent = '';
+			var g_strIndex = 2;
+			var g_strMediaName = '';
+			var g_strInitFocusElementId  = null;
+			var g_bIsAuth = false;
+			var g_oMediaInfo = {};
+			var g_iAuthStatus =0;
+			var g_bIsSendProbe = false;
+
+			var g_strWatchTime = '';
+			var g_strStbId = '';
+			var g_strProductCode = '';
+			var g_strOrderTime = '';
+			function init() {
+				try {
+					Log.warning("ConcertMode1:" + getCookie("god_mode"));
+					GOD_MODE = ("1" == getCookie("god_mode")) ? 1 : 0;
+					Log.warning("ConcertMode2:" + GOD_MODE);
+				} catch(err) {
+					Log.error("模式获取失败..." + err);
+				}
+				g_strId = getQueryStringByName("id") || '6902'; //节目ID
+				g_strName = decodeURIComponent(getQueryStringByName('name')); //节目名称
+				g_strMediaCode = getQueryStringByName('mediaCode'); //剧集mediacode
+				g_iEpisodeIndex = getQueryStringByName('episodeNum') ? parseInt(getQueryStringByName('episodeNum')) : 1; //剧集数
+				g_strAppId = getQueryStringByName("appId") ? getQueryStringByName("appId") : "tda7e47f868313d9f5";
+				if(g_strAppId == SONG_APPID) {
+					g_proCId = '68';
+					g_strParentCId = SONG_FREE_CID;
+				} else if(g_strAppId == ENHLISH_APPID) {
+					g_proCId = '74';
+					g_strParentCId = ENGLISH_FREE_CID;
+				} else if(g_strAppId == STORY_APPID) {
+					g_proCId = '77';
+					g_strParentCId = STORY_FREE_CID;
+				} else if(g_strAppId == SCIENCE_APPID) {
+					g_proCId = '83';
+					g_strParentCId = SCIENCE_FREE_CID;
+				} else if(g_strAppId == EDUCATION_APPID) {
+					g_proCId = '80';
+					g_strParentCId = EDUCATION_FREE_CID;
+				} else if(g_strAppId == CLASSICAL_APPID) {
+					g_proCId = '71';
+					g_strParentCId = CLASSICAL_FREE_CID;
+				} else if(g_strAppId == ART_APPID) {
+					g_proCId = '86';
+					g_strParentCId = ART_FREE_CID;
+				} else if(g_strAppId == TOY_APPID) { //玩具
+					g_proCId = '';
+					g_strParentCId = TOY_FREE_CID;
+				} else if(g_strAppId == SAFE_APPID) { //安全
+					g_proCId = '';
+					g_strParentCId = SAFE_FREE_CID;
+				}else if(g_strAppId == PICTURE_APPID) { //绘本
+					g_proCId = '536';
+					g_strParentCId = PICTURE_FREE_CID;
+				}
+				// g_iAuthStatus = getCookie('isAuthenticated'); //1为订购
+				g_strToken = getCookie('apiToken');
+				if(!g_strToken || g_strToken == '') {
+					Log.error("Can't Get User Info, Please Relogin from EPG");
+				} else {
+					Log.info("APIToken From Cookie:" + g_strToken);
+				}
+				if(getQueryStringByName('testStatus') == 1) {
+					g_strToken = '5608f7ab2f2c02b40bf9635267869af5';
+				}
+				g_iBackStatus = getQueryStringByName('backStatus');
+				g_iPlayStartTime=getQueryStringByName('startTime') || 0;
+				jsrender.templates({
+					contactTemplate: document.getElementById('contactList').innerHTML
+				});
+				jsrender.templates({
+					recommendTemplate: document.getElementById('recommendList').innerHTML
+				});
+				//页面上下文处理
+				var strCookiePageContext = getCookie(TOPDRAW_PAGE_CONTEXT_KEY);
+				var oCookiePageContext = null
+				if(!strCookiePageContext || strCookiePageContext == "") {
+					oCookiePageContext = {
+						pageContext: [],
+						backStatus: false
+					};
+				} else {
+					oCookiePageContext = JSON.parse(strCookiePageContext);
+				}
+				g_oProbe.appId=g_strAppId;
+				requestProbe('UIEnter');//进入页面的探针
+				/* if(g_iAuthStatus == 1) {
+					g_bIsHideOrderControl = false;
+					addClass(document.getElementById('go_order'), 'hidden');
+					g_strInitFocusElementId = "progress_focus";
+				} else {
+					g_bIsHideOrderControl = true;
+					addClass(document.getElementById('play_control'), 'hidden');
+					removeClass(document.getElementById('go_order'), 'hidden');
+					g_strInitFocusElementId = 'order_button';
+				} */
+				if(g_iBackStatus && g_iBackStatus == '1') {
+					if(oCookiePageContext.pageContext && oCookiePageContext.pageContext.length > 0) {
+						g_oPageContext = oCookiePageContext.pageContext.pop();
+						if(g_oPageContext.focusId) {
+							g_strInitFocusElementId = g_oPageContext.focusId;
+						}
+					}
+					oCookiePageContext.backStatus = false;
+					setCookie(TOPDRAW_PAGE_CONTEXT_KEY, JSON.stringify(oCookiePageContext));
+					if(g_iAuthStatus != 1){
+						backAPage();
+					}
+				}
+				destroyMediaPlayer();
+				if(g_bIsHaiXinIP506H) { //特殊处理
+					if(typeof MediaPlayer != "undefined") {
+						var mediaPlayer = new IP506HInitMediaPlayer();
+						mediaPlayer.destroy();
+						IP506HInitPlayer();
+					}
+				} else {
+					initPlayer();
+				}
+				//获取播放节目
+				var strGetProgramPara = {
+					"view": "json",
+					"ids": g_strId,
+					"start": 0,
+					"limit": 1,
+					"appId": g_strAppId,
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'Media/List', null, strGetProgramPara, onGetProgramRequestSuccess, onGetProgramRequestError);
+				//获取默认收藏夹
+				var strDefaultCollectRequestPara = {
+					"view": "json",
+					"appId": g_strAppId,
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'User/GetDefaultCollection', null, strDefaultCollectRequestPara, onDefaultCollectRequestSuccess, onDefaultCollectRequestError);
+				/* var strDefaultCollectRequestPara = {
+					"view": "json",
+					"appId": "",
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'User/GetDefaultCollection', null, strDefaultCollectRequestPara, onCollectionRequestSuccess, onDefaultCollectRequestError); */
+//				playListItem();
+				//获取推荐节目
+				var oGetPromotionParas = {
+					"view": "json",
+					"categoryId": g_proCId,
+					"start": "0",
+					"limit": "5",
+					"sortField": "update_time",
+					"sortDirection": "desc",
+					'appId': g_strAppId,
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'Media/ListByCategory', null, oGetPromotionParas, onGetPromotionRequestSuccess, onGetPromotionRequestError);
+				checkPageReadyAndInitFocus();
+				//初始化按键
+				document.onkeydown = onKeyDown;
+				document.onkeyup = onKeyUp;
+				initPageKey(onPageKeyDown, onPageKeyUp);
+			}
+
+			function checkPageReadyAndInitFocus() {
+				try {
+					if(!g_bIsUTBox) {
+						collectFocusElement();
+					}
+					if(!g_bIsFocusInited && g_bDoesProgramDurationGot && g_bIsGetBookMarkDataInited && g_bIsAuth/* && g_bContactListDataInited*/) {
+						initFocus(g_strInitFocusElementId, onBeforeFocusChange, onAfterFocusChange);
+						if(!g_bIsUTBox && g_strInitFocusElementId) {
+	                        if(-1 != g_strInitFocusElementId.indexOf('contact_cell_')) { //针对contact
+	                            var strIndex = g_strInitFocusElementId.replace(/contact_cell_/, '');
+	                            if(document.getElementById('contact_first_' + strIndex).offsetWidth > document.getElementById('contact_title_' + strIndex).offsetWidth) {
+	                                marqueeLeft('contactName', 'contact_title_' + strIndex, 'contact_first_' + strIndex, 'contact_second_' + strIndex, 20, 20);
+	                            }
+	                        }
+	                    }
+						if(!g_bIsUTBox) {
+							if(-1 != g_strInitFocusElementId.indexOf('recommend_cell_')) { //针对contact
+								var strIndex = g_strInitFocusElementId.replace(/recommend_cell_/, '');
+								if(document.getElementById('recommend_first_' + strIndex).offsetWidth > document.getElementById('recommend_title_' + strIndex).offsetWidth) {
+									marqueeLeft('contactName', 'recommend_title_' + strIndex, 'recommend_first_' + strIndex, 'recommend_second_' + strIndex, 20, 20);
+								}
+							}
+						} else { //针对UT
+							if(-1 != g_strInitFocusElementId.indexOf('recommend_cell_')) {
+								var strIndex = g_strInitFocusElementId.replace(/recommend_cell_/, '');
+								addClass(document.getElementById('recommend_inner_' + strIndex), 'hidden');
+								removeClass(document.getElementById('marquee_4ut_' + strIndex), 'hidden');
+							}
+
+						}
+						//createAdjacency();//用于画地图 用后请删除
+						g_bIsFocusInited = true;
+//						delayDisappearPlayControl(5000);
+					}
+				} catch(err) {
+					Log.error("checkPageReadyAndInitFocus：" + err);
+				}
+			}
+
+			function onBeforeFocusChange(elPrevious, elTarget, strDirection) {
+				if(!g_bIsUTBox) {
+	                if(elPrevious && (-1 != elPrevious.id.indexOf('contact_cell_'))) { //important
+	                    var strIndex = elPrevious.id.replace(/contact_cell_/, '');
+	                    marqueeStop("contactName", "contact_title_" + strIndex, "contact_second_" + strIndex);
+	                    addClass(document.getElementById('contact_title_' + strIndex),'contact_content_active');
+	                    addClass(document.getElementById('contact_first_'+strIndex),'title_width');
+	                }
+	            }
+				if(!g_bIsUTBox) {
+					if(elPrevious && (-1 != elPrevious.id.indexOf('recommend_cell_'))) {
+						var strIndex = elPrevious.id.replace(/recommend_cell_/, '');
+						marqueeStop("contactName", "recommend_title_" + strIndex, "recommend_second_" + strIndex);
+						addClass(document.getElementById('recommend_title_' + strIndex),"recommend_content_Active");
+						addClass(document.getElementById('recommend_title_'+strIndex),'recommend_titleWidth');
+					}
+				} else { //针对UT
+					if(elPrevious && (-1 != elPrevious.id.indexOf('recommend_cell_', ''))) {
+						var strIndex = elPrevious.id.replace(/recommend_cell_/, '');
+						removeClass(document.getElementById('recommend_inner_' + strIndex), 'hidden');
+						addClass(document.getElementById('marquee_4ut_' + strIndex), 'hidden');
+					}
+				}
+				if(elPrevious) {
+					if(elPrevious.id == 'progress_focus' || elPrevious.id == 'play_or_pause' || elPrevious.id == 'on_episode' || elPrevious.id == 'next_episode' || elPrevious.id == 'cycle' || elPrevious.id == 'collect') {
+						removeClass(elPrevious, 'cat_focus');
+					}
+					if(elPrevious.id == 'friendlyFocus'){
+						removeClass(elPrevious,'focusActive');
+					}
+				}
+			}
+
+			function onAfterFocusChange(elPrevious, elTarget, strDirection) {
+				if(!g_bIsUTBox) {
+	                if(elTarget && (-1 != elTarget.id.indexOf('contact_cell_'))) {
+	                    var strIndex = elTarget.id.replace(/contact_cell_/, '');
+	                    removeClass(document.getElementById('contact_first_'+strIndex),'title_width');
+	                    if(document.getElementById('contact_first_' + strIndex).offsetWidth > document.getElementById('contact_title_' + strIndex).offsetWidth) {
+	                        marqueeLeft('contactName', 'contact_title_' + strIndex, 'contact_first_' + strIndex, 'contact_second_' + strIndex, 20, 20);
+	                    }else{
+	                    	addClass(document.getElementById('contact_first_'+strIndex),'title_width');
+	                    }
+	                }
+	            }
+				if(!g_bIsUTBox) {
+					if(elTarget && (-1 != elTarget.id.indexOf('recommend_cell_'))) {
+						var strIndex = elTarget.id.replace(/recommend_cell_/, '');
+						removeClass(document.getElementById('recommend_first_'+strIndex),'recommend_titleWidth');
+						if(document.getElementById('recommend_first_' + strIndex).offsetWidth > document.getElementById('recommend_title_' + strIndex).offsetWidth) {
+							marqueeLeft('contactName', 'recommend_title_' + strIndex, 'recommend_first_' + strIndex, 'recommend_second_' + strIndex, 20, 20);
+						}else{
+							addClass(document.getElementById('recommend_first_'+strIndex),'recommend_titleWidth');
+						}
+					}
+				} else { //针对UT
+					Log.info('go to UT');
+					if(elTarget && (-1 != elTarget.id.indexOf('recommend_cell_'))) {
+						var strIndex = elTarget.id.replace(/recommend_cell_/, '');
+						addClass(document.getElementById('recommend_inner_' + strIndex), 'hidden');
+						removeClass(document.getElementById('marquee_4ut_' + strIndex), 'hidden');
+					}
+				}
+				if(elTarget) {
+					if(elTarget.id == 'progress_focus' || elTarget.id == 'play_or_pause' || elTarget.id == 'on_episode' || elTarget.id == 'next_episode' || elTarget.id == 'cycle' || elTarget.id == 'collect') {
+						addClass(elTarget, 'cat_focus');
+					}
+					if(elTarget.id == 'friendlyFocus'){
+						addClass(elTarget,'focusActive');
+					}
+				}
+			}
+			
+			function onCollectionRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						g_strCollectionId = oJSONResult.resultSet[0].id || "";
+						Log.info('Business Success : Collection Id Request Success');
+					} else {
+						Log.error('Business Error : Collection Id Request failed' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error('Business Exception: Collection Id Request Error:' + err + ',' + responseText);
+				}
+			}
+			function onDefaultCollectRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						g_strCollectionDefaultId = oJSONResult.resultSet[0].id || "";
+						Log.info('Business Success : Collection Id Request Success');
+					} else {
+						Log.error('Business Error : Collection Id Request failed' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error('Business Exception: Collection Id Request Error:' + err + ',' + responseText);
+				}
+			}
+
+			function onDefaultCollectRequestError(responseText) {
+				Log.error('Communication Error: Get Collection Id Error...' + responseText + '!!');
+			}
+			//获取播放列表
+			function playListItem() {
+				var oGetPlayListItemParas = {
+					"view": "json",
+					'appId': g_strAppId,
+					"start": "0",
+					"limit": "100",
+					'sortField': 'update_time',
+					"sortDirection": "desc",
+					"categoryId": g_proCId,
+					"token": g_strToken
+				}
+				if(g_iEpisodeIndex == g_iEpisodeCount){
+					if(oGetPlayListItemParas.start == 100){
+						oGetPlayListItemParas.start =100;
+					}else{
+						oGetPlayListItemParas.start = parseInt(oGetPlayListItemParas.start + 1);
+					}
+				}
+				if(g_iEpisodeCount > 1 && g_iEpisodeIndex == 1){
+					if(oGetPlayListItemParas.start == 0){
+						oGetPlayListItemParas.start = 0;
+					}else{
+						parseInt(oGetPlayListItemParas.start-=1);
+					}
+				}
+//				ajax('GET', TOPDRAW_API_SERVER + 'Media/ListByCategory', null, oGetPlayListItemParas, oGetPlayListRequestSuccess, oGetPlayListRequestError);
+				ajax('GET', TOPDRAW_API_SERVER + 'User/ListPlaylistItem', null, oGetPlayListItemParas, oGetPlayListRequestSuccess, oGetPlayListRequestError);
+			}
+
+			function oGetPlayListRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						Log.info("播放列表");
+						//g_iAfterLoadStatus = 1;
+						var strBookMarkParameters = { //如果有记录时,获取播放记录
+							"view": "json",
+							"start": "0",
+							"limit": "1",
+							"mediaIds": g_strId,
+							'appId': g_strAppId,
+							"token": g_strToken
+						}
+						//获取播放记录的时间
+						ajax('GET', TOPDRAW_API_SERVER + 'User/ListBookmark', null, strBookMarkParameters, onGetBookMarkSuccess, onGetBookMarkError);
+						g_iPlayListSize = oJSONResult.count;
+						Log.info('Business: Get program Success...');
+					} else {
+						Log.error('Business Error: Get playListItem Error' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error('Business Error: Get playListItem Error' + err);
+				}
+			}
+
+			function oGetPlayListRequestError(responseText) {
+				Log.error('Communication: Get playListItem Error...' + responseText + '!!');
+			}
+
+			function onGetProgramRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						if(oJSONResult.resultSet.length<1){
+							if(g_timerPlayControl) {
+								window.clearTimeout(g_timerPlayControl);
+							}
+							addClass(document.getElementById('go_order'), 'hidden');
+							addClass(document.getElementById('play_control'), 'hidden');
+							removeClass(document.getElementById('friendlyPrompt'),'hidden');
+							document.getElementById('pageMark').style.opacity = 1;
+							g_strInitFocusElementId = 'friendlyFocus';
+							checkPageReadyAndInitFocus();
+							g_iFocusStatus = 1;
+							initFocus(g_strInitFocusElementId, onBeforeFocusChange, onAfterFocusChange);
+							hideFocus();
+							return;
+						}
+						g_strSouhuContent = oJSONResult.resultSet[0].content_provider_id;
+						if(g_strSouhuContent != CONTENT_PROVIDER_ID){
+							addClass(document.getElementById('sohu_prompt'),'hidden');
+						}else{
+							removeClass(document.getElementById('sohu_prompt'),'hidden');
+						}
+						g_strName = oJSONResult.resultSet[0].name;
+						g_iProgramType = oJSONResult.resultSet[0].type;
+						g_iEpisodeCount = oJSONResult.resultSet[0].episode_number;
+						g_strCode = oJSONResult.resultSet[0].code;
+						try{
+                            g_strMediaImg = getVerticalImg(oJSONResult.resultSet[0].images);
+                        }catch(err){}
+						//根据节目获取分类(该影片是否是免费)
+						var strGetIdsFreePara = {
+							"view": "json",
+							"mediaId": g_strId,
+							"start": 0,
+							"limit": 30,
+							"appId": g_strAppId,
+							"token": g_strToken
+						}
+						ajax('GET', TOPDRAW_API_SERVER + 'Category/ListByMedia', null, strGetIdsFreePara, onGetIdsFreeRequestSuccess, onGetIdsFreeRequestError);
+						Log.info('Business: Get program Success...');
+					} else {
+						Log.error('Business Error: Get program Error' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error('Business Error: Get program Error' + oJSONResult.description);
+				}
+			}
+
+			function onGetIdsFreeRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						var vListMedia = [];
+						var listArr = [];
+						for(var i = 0; i < oJSONResult.resultSet.length; i++) {
+							var strParentCId = oJSONResult.resultSet[i].id;
+							if(strParentCId == g_strParentCId) {
+								Log.warning("免费分类里的节目");
+								g_iAuthStatus = 1;								
+							}
+							/* if(g_iAuthStatus == 1) {
+								g_bIsHideOrderControl = false;
+								addClass(document.getElementById('go_order'), 'hidden');
+								g_strInitFocusElementId = "progress_focus";
+								removeClass(document.getElementById('play_control'), 'hidden');
+							} else {
+								g_bIsHideOrderControl = true;
+								g_strInitFocusElementId = 'order_button';
+								removeClass(document.getElementById('go_order'), 'hidden');
+							} */
+							vListMedia.push(oJSONResult.resultSet[i].name);
+                            if(-1 != vListMedia[i].indexOf("免费分类")){
+								g_iAuthStatus = 1;
+                            	/* g_strIndex = parseInt(vListMedia[i].replace(/免费分类/,''));
+                            	listArr.push(g_strIndex); */
+                            }
+						}
+						/* if(listArr.length < 1){
+							g_strIndex = '';
+						}else{
+							var max = Math.max.apply(null,listArr);
+							g_strIndex = max + 1;
+						} */
+						//获取剧集
+						var strGetEpisodeParas = '';
+						g_strMediaName = g_strName;
+						if(g_iEpisodeIndex && g_iProgramType == 4) {
+							g_strIndex = 0;
+							g_strMediaName += '_第' + g_iEpisodeIndex + '集';
+							strGetEpisodeParas = 'view=json&mediaId=' + g_strId + '&index=' + g_iEpisodeIndex + '&start=0&limit=1&sortField=index&sortDirection=asc&token=' + g_strToken + '&appId=' + g_strAppId;
+							ajax('GET', TOPDRAW_API_SERVER + 'Episode/ListByMedia', null, strGetEpisodeParas, onGetEpisodeRequestSuccess, onGetEpisodeRequestError);
+						} else {
+							g_strIndex = 0;
+							if(g_iAuthStatus != 1) {
+								// g_iAuthStatus = getCookie('isAuthenticated');
+								if(g_iFreeStatus) {
+									g_iAuthStatus = 1;
+								}
+								Log.info('isAuthenticated=' + g_iAuthStatus + '&freeStatus=' + g_iFreeStatus);
+							}
+							var strBookMarkParameters = { //如果有记录时,获取播放记录
+								"view": "json",
+								"start": "0",
+								"limit": "1",
+								"mediaIds": g_strId,
+								'appId': g_strAppId,
+								"token": g_strToken
+							}
+							//获取播放记录的时间
+							ajax('GET', TOPDRAW_API_SERVER + 'User/ListBookmark', null, strBookMarkParameters, onGetBookMarkSuccess, onGetBookMarkError);
+						}
+						Log.info('Business: Get getids Success...');
+					} else {
+						Log.error('Business Error: Get getids Error' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error("Business getIdsFree Exception: " + err);
+				}
+			}
+
+			function onGetPromotionRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						/* if(g_proCId == '53' && g_iProgramType == 3) {
+							document.getElementById("recommend_contact").innerHTML =
+								jsrender.render.recommendTemplate(oJSONResult.resultSet, {
+									linkClass: "focusable",
+									imageBasePath: IMAGE_BASE_PATH
+								});
+							addClass(document.getElementById('contact_title'),"hidden");
+							return;
+						}
+						document.getElementById("contact_content").innerHTML =
+							jsrender.render.contactTemplate(oJSONResult.resultSet, {
+								linkClass: "focusable",
+								imageBasePath: IMAGE_BASE_PATH
+							}); */
+						addClass(document.getElementById('contact'),"hidden");
+						addClass(document.getElementById('recommend_vertical'),"hidden");
+						Log.info('Business: Get promotion Success...');
+					} else {
+						Log.error('Business Error: Get promotion Error' + oJSONResult.description);
+					}
+					g_bContactListDataInited = true;
+					if(!g_bIsUTBox) {
+						collectFocusElement();
+					}
+
+					if(!g_bFocusInited) {
+						checkPageReadyAndInitFocus();
+					}
+				} catch(err) {
+					Log.error("Business Exception: -->" + err);
+				}
+			}
+
+			function onGetPromotionRequestError(responseText) {
+				Log.error('Communication: Get content Error...' + responseText + '!!');
+			}
+
+			function onGetEpisodeRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.resultSet.length<1){
+						if(g_timerPlayControl) {
+							window.clearTimeout(g_timerPlayControl);
+						}
+						addClass(document.getElementById('go_order'), 'hidden');
+						addClass(document.getElementById('play_control'), 'hidden');
+						removeClass(document.getElementById('friendlyPrompt'),'hidden');
+						document.getElementById('pageMark').style.opacity = 1;
+						g_strInitFocusElementId = 'friendlyFocus';
+						checkPageReadyAndInitFocus();
+						g_iFocusStatus = 1;
+						initFocus(g_strInitFocusElementId, onBeforeFocusChange, onAfterFocusChange);
+						hideFocus();
+						return;
+					}
+					if(oJSONResult.businessCode == "success") {
+						g_bIsPlaying = false;
+						var oProgram = oJSONResult.resultSet[0];
+						if(oProgram.id) { //不为空
+							if(oProgram.index == g_iEpisodeIndex) {
+								g_strMediaCode = oProgram.media_code;
+								g_strEpisodeId = oProgram.id;
+								g_strEpisodeName = oProgram.name; //电视剧有而电影没有
+								if(typeof(g_strEpisodeName) == 'undefined') {
+									g_strEpisodeName = g_strName;
+								}
+							}
+						}
+						if(g_strIndex){
+							if(g_iEpisodeIndex <= g_strIndex){
+								g_iAuthStatus = 1;
+								g_bIsHideOrderControl = false;
+								/* addClass(document.getElementById('go_order'), 'hidden');
+								g_strInitFocusElementId = "progress_focus";
+								removeClass(document.getElementById('play_control'), 'hidden'); */
+							}else{
+								g_iAuthStatus = 0;
+								g_bIsHideOrderControl = true;
+								/* removeClass(document.getElementById('go_order'), 'hidden');
+								addClass(document.getElementById('play_control'), 'hidden');
+								flyFocus(document.getElementById("order_button"), "left", g_fScaleFactor, null); */
+							}
+						}
+						if(g_iAuthStatus != 1) {
+							// g_iAuthStatus = getCookie('isAuthenticated');
+							if(g_iFreeStatus) {
+								g_iAuthStatus = 1;
+							}
+						}
+						Log.warning('isAuthenticated=' + g_iAuthStatus + '&freeStatus=' + g_iFreeStatus);
+						var strBookMarkParameters = { //如果有记录时,获取播放记录
+							"view": "json",
+							"start": "0",
+							"limit": "1",
+							"mediaIds": g_strId,
+							"appId": g_strAppId,
+							"token": g_strToken
+						}
+						//获取播放记录
+						ajax('GET', TOPDRAW_API_SERVER + 'User/ListBookmark', null, strBookMarkParameters, onGetBookMarkSuccess, onGetBookMarkError);
+						Log.info("Business Success: get Episode sucess..");
+					} else {
+						Log.info("Business Error:" + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error("Business Exception: Get Episode" + err);
+				}
+			}
+
+			function onGetBookMarkSuccess(responseText) {
+				try {
+					Log.info('responseText-->'+responseText);
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						if(oJSONResult.count != 0) {
+							if(g_strEpisodeId == oJSONResult.resultSet[0].episode_id) {
+								g_iPlayStartTime = parseInt(oJSONResult.resultSet[0].start_time);
+								Log.info('g_iPlayStartTime-->'+g_iPlayStartTime);
+								if(g_iAuthStatus != 1) { //没有订购
+									g_iPlayStartTime = 0;
+								}
+								playTheSong(g_strEpisodeId, g_strMediaCode, encodeURIComponent(g_strEpisodeName));
+							} else {
+								g_iPlayProgress = 0;
+								playTheSong(g_strEpisodeId, g_strMediaCode, encodeURIComponent(g_strEpisodeName));
+							}
+						}else {
+							g_iPlayStartTime = 0;
+							playTheSong(g_strEpisodeId, g_strMediaCode, encodeURIComponent(g_strEpisodeName));
+						}
+						Log.info("get Bookmark success");
+					} else {
+						Log.info("get Bookmark failed:" + oJSONResult.description);
+					}
+					g_bIsGetBookMarkDataInited = true;
+					if(!g_bIsUTBox) {
+						collectFocusElement();
+					}
+					if(!g_bFocusInited) {
+						checkPageReadyAndInitFocus();
+					}
+				} catch(err) {
+					Log.error("Get Bookmark error" + err);
+				}
+			}
+
+			function playTheSong(strId, strMediaCode, strName) {
+				//获取收藏
+				var oMediaCollectionParameters = {
+					"view": "json",
+					"mediaIds": g_strId,
+					"needCollection": "1",
+					"start": 0,
+					"limit": 1,
+					"token": g_strToken,
+					'appId': g_strAppId
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'User/ListMediaAdditional', null, oMediaCollectionParameters, onMediaCollectionRequestSuccess, onMediaCollectionRequestError);
+				document.getElementById('programName').innerHTML = decodeURIComponent(strName);
+
+				// strId = '16573';
+				// 节目播放前需要先鉴权一次
+				var oSubscribeParameters={
+					"view":"json",
+					"token":g_strToken,
+					"currentTime":"",
+					"mediaId":g_strId,
+					"episodeId":strId,
+				}
+				ajax("GET",TOPDRAW_API_SERVER+"Platform/Auth",null,oSubscribeParameters,function(responseText){
+						try {
+							Log.info('auth -->'+responseText);
+							var oJSONResult = JSON.parse(responseText);
+							var strAuthorizationNum = '';
+							if(g_iAuthStatus == 1 || (g_strIndex && g_iEpisodeIndex <= g_strIndex)) {
+								g_bIsHideOrderControl = false;
+								g_bIsHidePlayControl = true;
+								addClass(document.getElementById('go_order'), 'hidden');
+								removeClass(document.getElementById('play_control'), 'hidden');
+								g_strInitFocusElementId = "progress_focus";
+								delayDisappearPlayControl(g_iHiddenDuration);
+							} else {
+								if(oJSONResult.resultSet.length>0){
+									if(oJSONResult.resultSet[0].result == 0){
+										g_iAuthStatus = 1;
+										g_bIsHideOrderControl = false;
+										g_bIsHidePlayControl = true;
+										addClass(document.getElementById('go_order'), 'hidden');
+										g_strInitFocusElementId = "progress_focus";
+										removeClass(document.getElementById('play_control'),'hidden');
+										// initFocus(g_strInitFocusElementId, onBeforeFocusChange, onAfterFocusChange);
+									}else{
+										g_bIsHideOrderControl = true;
+										g_bIsHidePlayControl = false;
+										addClass(document.getElementById('play_control'), 'hidden');
+										removeClass(document.getElementById('go_order'), 'hidden');
+										g_strInitFocusElementId = 'order_button';
+									}
+									strAuthorizationNum = oJSONResult.resultSet[0].authorizationNum;
+								}else if(oJSONResult.businessCode == 'success'){
+									g_iAuthStatus = 1;
+									g_bIsHideOrderControl = false;
+									g_bIsHidePlayControl = true;
+									addClass(document.getElementById('go_order'), 'hidden');
+									g_strInitFocusElementId = "progress_focus";
+									removeClass(document.getElementById('play_control'),'hidden');
+								}else{
+									g_bIsHideOrderControl = true;
+									g_bIsHidePlayControl = false;
+									addClass(document.getElementById('play_control'), 'hidden');
+									removeClass(document.getElementById('go_order'), 'hidden');
+									g_strInitFocusElementId = 'order_button';
+								}
+								/* g_bIsHideOrderControl = true;
+								g_bIsHidePlayControl = false;
+								addClass(document.getElementById('play_control'), 'hidden');
+								removeClass(document.getElementById('go_order'), 'hidden');
+								g_strInitFocusElementId = 'order_button'; */
+							}
+							g_strStbId = oJSONResult.resultSet[1].stbid;
+							g_strProductCode = oJSONResult.resultSet[0].productCode?oJSONResult.resultSet[0].productCode:'';
+							g_strOrderTime = oJSONResult.resultSet[1].order_time?oJSONResult.resultSet[1].order_time:'';
+							g_bIsAuth = true;
+							checkPageReadyAndInitFocus();
+							//请求播放地址
+							var strGetPlayURLPara = {
+								"view": "json",
+								"mediaId": g_strId,
+								"episodeId": strId,
+								"appId": g_strAppId,
+								"token": g_strToken,
+								"authorizationNum":strAuthorizationNum
+							}
+							g_oProbe.mediaId=g_strId;
+							g_oProbe.code = g_strCode;
+							ajax('GET', TOPDRAW_API_SERVER + 'Platform/Play', null, strGetPlayURLPara, onPlayURLRequestSuccess, onPlayURLRequestError);
+						}catch(err){
+							Log.error('Exception: Auth error...'+err);
+						}
+					},
+					function(responseText){
+						Log.error("Communication Error: subscribtion"+oSubscribeParameters.contentId+" message Error ..."+responseText);
+					}
+				);
+				
+			}
+
+			function onPlayURLRequestSuccess(responseText) {
+				try {
+					var strPlayURL = null;
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						strPlayURL = oJSONResult.resultSet[0].playurl;
+						var mediaCode = oJSONResult.resultSet[0].mediaCode;
+						var episodeCode = oJSONResult.resultSet[0].episodeCode;
+						var fileCode =  oJSONResult.resultSet[0].fileCode;
+						try{
+							g_mediaPlayer.stop();
+						}catch(err){}
+						setPlayUrl2MediaPlayer(strPlayURL,mediaCode,episodeCode,fileCode);
+					} else {
+						onError();
+						Log.error("获取播放地址业务失败:", oJSONResult.description);
+						return;
+					}
+				} catch(err) {
+					Log.error("MediaPlayer按照请求地址播放错误：" + err);
+				}
+			}
+
+			function onPlayURLRequestError(responseText) {
+				onError();
+				Log.info("Get PlayURL Error: " + responseText);
+			}
+
+			function setPlayUrl2MediaPlayer(strPlayURL,mediaCode,episodeCode,fileCode,playByTime) {
+				try {
+					if(!strPlayURL) {
+						//测试地址
+						strPlayURL = 'http://gslbserv.itv.cmvideo.cn/0cc58762851d4e258a31e7682a8171b3.ts?channel-id=taojlhsp&Contentid=1043000275&authCode=pb01201909261036044541&stbId=005303FF00010060180658B42D5FC015&usergroup=g04023000000&userToken=f726fc9c38bbf944251f480133b5453104pb';
+					}else if(-1 != strPlayURL.indexOf('&Contentid=&authCode=&')){
+						// strPlayURL = 'http://gslbserv.itv.cmvideo.cn/0cc58762851d4e258a31e7682a8171b3.ts?channel-id=taojlhsp&Contentid=1043000275&authCode=pb01201909261036044541&stbId=005303FF00010060180658B42D5FC015&usergroup=g04023000000&userToken=f726fc9c38bbf944251f480133b5453104pb';
+					}
+					// strPlayURL = 'http://gslbserv.itv.cmvideo1.cn/0cc58762851d4e258a31e7682a8171b3.ts?channel-id=taojlhsp&Contentid=1043000275&authCode=pb01201909261036044541&stbId=005303FF00010060180658B42D5FC015&usergroup=g04023000000&userToken=f726fc9c38bbf944251f480133b5453104pb';
+					Log.info('strPlayURL--->'+strPlayURL);
+					g_oMediaInfo.mediaName = g_strMediaName;
+					g_oMediaInfo.mediaCode = mediaCode;
+					g_oMediaInfo.episodeCode = episodeCode;
+					g_oMediaInfo.fileCode = fileCode;
+					g_strPlayURL = strPlayURL;
+					var aMedia = '[{mediaUrl:"' + strPlayURL + '",' +
+						// 'mediaCode:"jsoncode1",' +
+						'mediaType:2,' +
+						'audioType:1,' +
+						'videoType:1,' +
+						'streamType:1,' +
+						'drmType:1,' +
+						'fingerPrint:0,' +
+						'copyProtection:1,' +
+						'allowTrickmode:1,' +
+						'startTime:0,'
+						// + '"startTime":'+strStartTime+','
+						+'endTime:20000,' +
+						'mediaName:"' + g_strMediaName + '"' +
+						',mediaCode:"' + mediaCode + '"' +
+						',episodeCode:"' + episodeCode + '"' +
+						',fileCode:"' + fileCode + '"' +
+						',entryID:"jsonentry1"}]';
+					if(!g_bIsFocusInited){
+						loading.createLoadingIcon(0,0,1280,720);						
+					}
+					loading.startLoadingAnimation();
+					g_mediaPlayer.setSingleMedia(aMedia); //设置媒体播放器播放媒体内容
+
+					g_iVolume = g_mediaPlayer.getVolume();
+					updateVolumeUI(g_iVolume);
+					//g_mediaPlayer.setVolume(g_iVolume);
+					//setGlobalVolume(g_iVolume);					
+
+					if(playByTime) {
+						g_iPlayStartTime = playByTime;
+					} else {
+						if(g_iPlayStartTime > 1) {							
+							g_bGoToPlay = true;
+						} else {
+							g_iPlayStartTime = 0;
+						}
+					}
+					if(g_bIsFocusInited){
+						g_iPlayStartTime = 0;
+					}
+					g_mediaPlayer.playByTime(1, 0, 1);
+					g_oInit.bValidPlayProbe=false;
+                    g_oInit.playtime=0;//播放有效时长的积累
+					g_oProbe.action='MediaPlay';
+                    g_oProbe.endTime=g_iPlayStartTime;
+                    
+					g_bIsPlaying = true;
+					
+					g_bDoesProgramDurationGot = false;
+					g_iMediaDurationGetCount = 0;
+					g_iProgramDuration = 0;
+
+					//半秒后才可拿到那个毛Duration
+					if(g_timerDurationInfoDelay) {
+						window.clearTimeout(g_timerDurationInfoDelay);
+					}
+					g_timerDurationInfoDelay = window.setTimeout(
+						function() {
+							g_iProgramDuration = parseInt(g_mediaPlayer.getMediaDuration());
+							Log.warning('Delay Getting Duration ===:' + g_iProgramDuration);
+							if(g_iProgramDuration > 0){
+								if(g_iPlayStartTime > 0){
+									g_mediaPlayer.playByTime(1, g_iPlayStartTime, 1);									
+								}
+								g_strWatchTime = new Date();
+								addClass(document.getElementById("mark"),'backgroundType');
+								g_bDoesProgramDurationGot = true;
+								g_oProbe.duration=g_iProgramDuration;
+								if(!g_bIsSendProbe){
+									g_bIsSendProbe = true;
+									requestProbe('playStatus');//开始播放探针
+								}								
+								g_iPlayProgressStep = Math.ceil(g_iProgramDuration / 200); //计算出 步长
+								document.getElementById("pageMark").style.opacity = 1;
+								cpAddHistory();
+								checkPageReadyAndInitFocus();
+								Log.info('g_bIsHidePlayControl-->'+g_bIsHidePlayControl);
+								if(g_bIsFocusInited && g_bIsHidePlayControl){
+									if(document.getElementById('play_control').style.visibility != "hidden"){
+										showFocus();
+									}									
+								}
+							}else if(g_iProgramDuration < 0){
+								addClass(document.getElementById("mark"),'backgroundType');
+							}else{
+								g_bDoesProgramDurationGot = false;
+							}
+							window.clearTimeout(g_timerDurationInfoDelay);
+						}, 800
+					);
+
+					//保持更新播放进度 注意和快进快退的多线程同步问题
+					if(g_intervalPlaying) {
+						window.clearInterval(g_intervalPlaying);
+					} //相随的间隔函数
+					g_intervalPlaying = window.setInterval(
+						function() { //更新播放进度
+							//g_bIsPlayingDataLocked
+							if(!g_bDoesProgramDurationGot) {
+								g_iProgramDuration = parseInt(g_mediaPlayer.getMediaDuration());
+								g_iMediaDurationGetCount++;
+								Log.warning('Delay Getting Duration ===' + g_iProgramDuration);
+								if(0 < g_iProgramDuration) {
+									if(g_iPlayStartTime > 0){
+										g_mediaPlayer.playByTime(1, g_iPlayStartTime, 1);										
+									}
+									g_strWatchTime = new Date();
+									addClass(document.getElementById("mark"),'backgroundType');
+									g_bDoesProgramDurationGot = true;
+									g_oProbe.duration=g_iProgramDuration;									
+									if(!g_bIsSendProbe){
+										g_bIsSendProbe = true;
+										requestProbe('playStatus');//开始播放探针
+									}
+									g_iPlayProgressStep = Math.ceil(g_iProgramDuration / 200); //计算出 步长
+									document.getElementById("pageMark").style.opacity = 1;
+									Log.info('g_bIsHidePlayControl-->'+g_bIsHidePlayControl);
+									if(g_bIsFocusInited && g_bIsHidePlayControl){
+										if(document.getElementById('play_control').style.visibility != "hidden"){
+											showFocus();
+										}
+									}
+									cpAddHistory();
+									checkPageReadyAndInitFocus();
+								}else if(g_iProgramDuration < 0){
+									addClass(document.getElementById("mark"),'backgroundType');
+								}else {
+									g_bDoesProgramDurationGot = false;
+								}
+							}
+							if(!g_bIsPlayingDataLocked && 0 == g_iFastForwardContinuePress && 0 == g_iFastBackwardContinuePress) { //非操作快进快退时
+								if(g_iPlayProgress > 1 && g_bGoToPlay == true) {
+									g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+									g_bGoToPlay = false;
+								} else {
+									if(g_iPlayProgress >= g_iShiboTime && g_iAuthStatus != 1) {
+										addCpLog();
+										destroyMediaPlayer();
+										leaveBIProbe('other',g_strId,g_strCode);
+										forward('subscribe.html?id='+g_strId+'&episodeId='+g_strEpisodeId);
+									} else {
+										g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime()); //获取当前播放的进度(时间)
+									}
+								}
+
+								if(0 != g_iProgramDuration) {
+									updateProgressUIByPlayer(g_iPlayProgress, g_iProgramDuration);
+									g_oInit.playtime++;
+                                    playForwardProbe();//快进快退探针
+                                    validPlayProbe();//有效播放时长的判断探针
+								}
+								if(g_strSouhuContent == CONTENT_PROVIDER_ID && g_iPlayProgress == 2){
+		                    		addClass(document.getElementById('sohu_prompt'),'hidden');
+		                    	}
+
+							}
+							if(g_iPlayProgress >= g_iShiboTime && g_iAuthStatus != 1 && g_bIsPlaying) {
+								//新方案----------跳转
+								addCpLog();
+								destroyMediaPlayer();
+								leaveBIProbe('other',g_strId,g_strCode);
+								forward('subscribe.html?id='+g_strId+'&episodeId='+g_strEpisodeId);
+							}
+							/* if((g_bDoesProgramDurationGot && g_iPlayProgress >= g_iProgramDuration - 2) //拿到时长的情况下 到了最后三秒
+								||
+								(!g_bDoesProgramDurationGot && g_iMediaDurationGetCount > 5) //或者5次后还没有拿到总时长
+							) {
+								//Log.info("----------------一个节目放完了---------------->");
+								Log.info('g_isGoToCycle->'+g_isGoToCycle+'g_iPlayProgress-->'+g_iPlayProgress+'g_iProgramDuration--->'+g_iProgramDuration);
+								if(g_isGoToCycle && g_iPlayProgress >= (g_iProgramDuration - 2)){//当前选中单曲循环 正常结时从头开始播放
+									Log.info('g_isGoToCycle3--->'+g_isGoToCycle);
+									g_bIsPlayingDataLocked = true;
+									g_mediaPlayer.pause();
+									g_iPlayProgress = 0;
+									g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+									g_bIsPlayingDataLocked = false;
+								}else{
+									g_iMediaDurationGetCount = 0;
+									Log.info('here??????');
+									onSongPlayEnd(true);
+								}
+							} */
+						},
+						1000
+					);
+					
+					Log.info("setPlayUrl2MediaPlayer success");
+				} catch(err) {
+					Log.error("setPlayUrl2MediaPlayer error:::" + err);
+				}
+			}
+			function cpAddHistory(){
+				// 统一观影记录
+				// var strEnter = (g_iProgramType == 4 )? 'detail02' : 'detail01';//detail01 电影 detail02 电视剧
+				var strIntent = {"type": "apk",
+					"action": "android.intent.action.MAIN",
+					"package": "com.topdraw.children",
+					"component":{
+						"pkg": "com.topdraw.children",
+						"cls": "com.topdraw.children.MainActivity"
+					},
+					"extras":{
+						"target":{"from":"unified_bookmark","enter":"player01","back":0,"params":{"mediaId":parseInt(g_strId),"episodeId":g_strEpisodeId,"appId":g_strAppId}}
+					}
+				}
+				strIntent = JSON.stringify(JSON.stringify(strIntent));      
+				if(g_iEpisodeIndex && g_iProgramType == 4){
+					
+				}else{
+					g_strEpisodeId = g_strId;
+				}
+				var strCollectParams = '{"cpPrvName":"优宝乐园","cpPrvCode":"50000028","cpPrvType":1006,"cpLicense":"CNTV","account":"'+getCookie('userId')
+					+'","programSeriesName":"'+g_strMediaName
+					+'","programSeriesId":"'+g_strId
+					+'","programId":"'+g_strEpisodeId
+					+'","seriesNumber":"'+g_iEpisodeIndex
+					+'","totalTime":"'+g_iProgramDuration
+					+'","startWatchTime":"'+g_iPlayStartTime
+					+'","endWatchTime":"0'
+					+'","playTime":"0'
+					+'","logType":"begin'
+					+'","imageUrl":"'+IMAGE_BASE_PATH+g_strMediaImg
+					+'","intent":'+strIntent
+					+'}';
+					Log.info('add bookmark param===>'+strCollectParams);
+				ajax('POST', 'http://111.10.31.198:83/User/AddBookmark', ['application/json'], strCollectParams, function (successRes) {Log.info('add bookmark....'+successRes);},function (successRes) {})
+			}
+
+			function onSongPlayEnd(flag) { //有待补充
+				try {					
+					if(!g_bDoesProgramDurationGot){return;}
+					document.getElementById("pageMark").style.opacity = 0;
+					hideFocus();
+					removeClass(document.getElementById("mark"),'backgroundType');
+					Log.info('song end==' + g_iEpisodeIndex + '/' + g_iEpisodeCount);
+					g_iPlayStartTime=0;
+					g_bDoesProgramDurationGot =false;
+					g_iProgramDuration = 0;
+					g_iPlayProgress = 0;
+					updateProgressUIByPlayer(g_iPlayProgress, g_iProgramDuration);
+					if(!g_bIsPlaying){
+						var elPlayOrPause = document.getElementById('play_or_pause');
+						removeClass(elPlayOrPause, "pause_common");
+						addClass(elPlayOrPause, "play_common");
+					}							
+					g_bIsPlaying = false;
+					g_bIsPlayingDataLocked = false;
+					if(flag) { //播放下一集
+						var strGetEpisodeParas = '';
+						if(g_iEpisodeCount > g_iEpisodeIndex && g_iEpisodeIndex != g_iEpisodeCount) {
+							requestAddBook(true);
+							g_mediaPlayer.stop();
+							g_iEpisodeIndex = g_iEpisodeIndex + 1;
+							//j获取剧集
+							strGetEpisodeParas = 'view=json&mediaId=' + g_strId + '&index=' + g_iEpisodeIndex + '&start=0&limit=1&sortField=index&sortDirection=asc&token=' + g_strToken + '&appId=' + g_strAppId;
+							ajax('GET', TOPDRAW_API_SERVER + 'Episode/ListByMedia', null, strGetEpisodeParas, onGetEpisodeRequestSuccess, onGetEpisodeRequestError);
+						}else if(g_iEpisodeIndex == g_iEpisodeCount){
+							// playListItem();
+							g_bIsBackFlag=true;
+							requestAddBook();
+						}
+					} else { //播放上一集
+						if(g_iEpisodeCount > 1 && g_iEpisodeIndex > 1) {
+							requestAddBook(true);
+							g_mediaPlayer.stop();
+							g_iEpisodeIndex = g_iEpisodeIndex - 1;
+							//j获取剧集
+							var strGetEpisodeParas = 'view=json&mediaId=' + g_strId +'&index='+g_iEpisodeIndex+ '&start=0&limit=1&sortField=index&sortDirection=asc&token=' + g_strToken+'&appId='+g_strAppId;
+							ajax('GET', TOPDRAW_API_SERVER + 'Episode/ListByMedia', null, strGetEpisodeParas, onGetEpisodeRequestSuccess, onGetEpisodeRequestError);
+						} else if(g_iEpisodeCount > 1 && g_iEpisodeIndex == 1){
+							requestAddBook(true);
+							Log.info("here");
+							playListItem();		
+						}
+					}
+					/* if(g_iProgramDuration){
+						g_oProbe.action='MediaStop';
+		                g_oProbe.endTime=g_iPlayProgress;
+		                requestProbe('playStatus');
+					} */
+					g_iProgramDuration=0;
+				} catch(err) {
+					Log.error(err);
+				}
+			}
+
+			function requestAddBook(flag) {
+				addCpLog(); //先上报上一次播放行为
+				// var strEnter = (g_iProgramType == 4 )? 'detail02' : 'detail01';//detail01 电影 detail02 电视剧
+				var strIntent = {"type": "apk",
+					"action": "android.intent.action.MAIN",
+					"package": "com.topdraw.children",
+					"component":{
+						"pkg": "com.topdraw.children",
+						"cls": "com.topdraw.children.MainActivity"
+					},
+					"extras":{
+						"target":{"from":"unified_bookmark","enter":"player01","back":0,"params":{"mediaId":parseInt(g_strId),"episodeId":g_strEpisodeId,"appId":g_strAppId}}
+					}
+				}
+				strIntent = JSON.stringify(JSON.stringify(strIntent));    
+				if(g_iEpisodeIndex && g_iProgramType == 4){
+					
+				}else{
+					g_strEpisodeId = g_strId;
+				}    
+				var strCollectParams = '{"cpPrvName":"优宝乐园","cpPrvCode":"50000028","cpPrvType":1006,"cpLicense":"CNTV","account":"'+getCookie('userId')
+					+'","programSeriesName":"'+g_strMediaName
+					+'","programSeriesId":"'+g_strId
+					+'","programId":"'+g_strEpisodeId
+					+'","seriesNumber":"'+g_iEpisodeIndex
+					+'","totalTime":"'+g_iProgramDuration
+					+'","startWatchTime":"'+g_iPlayStartTime
+					+'","endWatchTime":"'+g_iPlayProgress
+					+'","playTime":"'+(g_iPlayProgress-g_iPlayStartTime)
+					+'","logType":"end'
+					+'","imageUrl":"'+(IMAGE_BASE_PATH+g_strMediaImg)
+					+'","intent":'+strIntent
+					+'}';
+					Log.info('add bookmark param===>'+strCollectParams);
+				ajax('POST', 'http://111.10.31.198:83/User/AddBookmark', ['application/json'], strCollectParams, function (successRes) {Log.info('add bookmark....'+successRes);},function (successRes) {})
+				if(flag){return;}
+				var strAddBookMarkParameters = {
+					"view": "json",
+					"mediaId": g_strId,
+					"episodeId": g_strEpisodeId,
+					"startTime": g_iPlayProgress,
+					"appId": g_strAppId,
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'User/AddBookmark', null, strAddBookMarkParameters, onAddBookMarkRequestSuccess, onAddBookMarkRequestError);
+				
+			}
+
+			function onAddBookMarkRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {		
+						Log.info('g_iProgramDuration->'+g_iProgramDuration+'g_mediaPlayer-->'+g_mediaPlayer+'g_bIsBackFlag-->'+g_bIsBackFlag);				
+						if(g_bIsBackFlag) {
+							if(g_iProgramDuration && g_mediaPlayer){
+								g_oProbe.action='MediaStop';
+				                g_oProbe.endTime=g_iPlayProgress;
+								requestProbe('playStatus');
+								g_iProgramDuration = 0;
+							}
+							destroyMediaPlayer();							
+							backAPage();
+						} else {
+							destroyMediaPlayer();
+							if(g_iProgramType == 3) {
+								var url = 'movie.html?id=' + g_str2Id + '&name=' + encodeURIComponent(g_str2name) + '&contactStatus=1';
+							} else {
+								var url = 'program.html?id=' + g_str2Id + '&name=' + encodeURIComponent(g_str2name) + '&contactStatus=1';
+							}
+
+							//forward(url);
+							var referURL = decodeURIComponent(getQueryStringByName('referURL'));
+							var contact = getURLStringByName(referURL, 'contactStatus');
+							referURL = getURLStringByName(referURL, 'referURL');
+							if(contact != '' && contact == '1') {
+								forward4detail(url, false, false, referURL); //referURL为非相关推荐详情页的url
+							} else {
+								forward4detail(url, false, false);
+							}
+						}
+
+						Log.info('Business: Get addbookmark Success...');
+					} else {
+						if(g_bIsBackFlag) {
+							if(g_iProgramDuration && g_mediaPlayer){
+								g_oProbe.action='MediaStop';
+				                g_oProbe.endTime=g_iPlayProgress;
+								requestProbe('playStatus');
+								g_iProgramDuration = 0;
+							}
+							destroyMediaPlayer();
+							backAPage();
+						}
+						Log.error('Business Error: Get addbookmark Error' + oJSONResult.description);
+					}
+
+					g_bAddBookMarkStatus = false;
+				} catch(err) {
+					Log.error("Business Exception: " + err);
+				}
+			}
+
+			function onAddBookMarkRequestError(responseText) {
+				Log.error('Communication: Get addbookmark Error...' + responseText + '!!');
+			}
+
+			function forward2detail(id, name, type) {
+				g_str2Id = id;
+				g_str2name = decodeURIComponent(name);
+				g_iProgramType = type;
+				requestAddBook();
+			}
+			jsrender.views.converters('formaBackground', function(val) {
+				var html = '';
+				if(typeof(val.map.background) != 'undefined' && typeof(val.map.background[0]) != null) {
+					html = val.list[val.map.background[0]].fileUrl;
+					html = IMAGE_BASE_PATH + html;
+				} else {
+					html = PLACEHOLDER_IMAGE_SRC;
+				}
+				return html;
+			});
+			jsrender.views.converters('formatImage', function(val) {
+				var html = '';
+				if(typeof(val.map.normal) != 'undefined' && typeof(val.map.normal[0]) != 'undefined') {
+					html = val.list[val.map.normal[0]].fileUrl;
+					html = IMAGE_BASE_PATH + html;
+				} else {
+					html = PLACEHOLDER_IMAGE_SRC;
+				}
+				return html;
+			});
+
+			function playOrPause() {
+				var elPlayOrPause = document.getElementById('play_or_pause');
+//				hideFocus();
+				if(g_bIsPlaying) { //要暂停
+//					removeClass(document.getElementById('play_control'),'hidden');
+					removeClass(elPlayOrPause, "play_common");
+					addClass(elPlayOrPause, "pause_common");
+					g_oProbe.action='MediaPause';
+					g_bIsPlaying = false;
+					g_mediaPlayer.pause(); //care
+					g_bIsPlayingDataLocked = true;
+					// removeClass(document.getElementById('contact'), 'hidden');
+					// removeClass(document.getElementById('recommend_vertical'),'hidden');
+					showFocus();
+				} else { //要播放
+//					addClass(document.getElementById('play_control'),'hidden');
+					removeClass(elPlayOrPause, "pause_common");
+					addClass(elPlayOrPause, "play_common");
+					g_oProbe.action='MediaPlay';
+					g_bIsPlaying = true;
+					g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+					g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+					g_bIsPlayingDataLocked = false;
+					// setPlayUrl2MediaPlayer(g_strPlayURL, g_iPlayProgress);
+					// addClass(document.getElementById('contact'), 'hidden');
+					// addClass(document.getElementById('recommend_vertical'),'hidden');
+//					hideFocus();
+				}
+				g_oProbe.endTime=g_iPlayProgress;
+				requestProbe('playStatus');
+				Log.info('pauseorplay  boPlay=' + g_bIsPlaying)
+			}
+			function fastForwardOnce(bDoPlay) {
+				if(!g_bIsPlayingDataLocked) { //初始为false
+					g_bIsPlayingDataLocked = true;
+					if(1 == g_iFastForwardContinuePress) { //初始为0
+						if(g_iSpeed * 2 <= g_iMaxSpeedMultiple) {
+							g_iSpeed = parseInt(g_iSpeed) * 2;
+						} else {
+							g_iSpeed = g_iMaxSpeedMultiple;
+						}
+					} else {
+						g_iSpeed = 1;
+					}
+					
+					//初始为1
+					if(g_iPlayProgress  <= g_iProgramDuration-5){
+						if(!g_bIsPlaying){
+							var elPlayOrPause = document.getElementById('play_or_pause');
+							removeClass(elPlayOrPause, "pause_common");
+							addClass(elPlayOrPause, "play_common");
+							g_bIsPlaying = true;
+							g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						}
+						if(0 == g_iFastForwardContinuePress) {
+							g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime()); //如果是持续按键直接修改
+							g_oProbe.startTime=g_iPlayProgress;
+							g_bIsPlayForwarding=true;
+						}
+						g_iPlayProgress = g_iPlayProgress + g_iSpeed * g_iPlayProgressStep; //Math.pow(2, globalParam.Speed);
+						
+					}
+					if(g_iPlayProgress >= g_iProgramDuration-5) {
+						g_iPlayProgress = g_iProgramDuration-5;						
+						Log.info('out progress');
+					}
+					if(g_iAuthStatus != 1/*  && getCookie('isAuthenticated') != 1 */ && g_iPlayProgress >= g_iShiboTime && !g_bIsTryEnd) { //试播快进时
+						//新方案----------跳转
+						addCpLog();
+						destroyMediaPlayer();
+						leaveBIProbe('other',g_strId,g_strCode);
+	            		forward("subscribe.html?id="+g_strId+'&episodeId='+g_strEpisodeId);
+						return;
+					}
+					Log.clear();
+					Log.info('start======PlayProgress:' + g_iPlayProgress + ' >> Duration:' + g_iProgramDuration + ' >> Speed:' + g_iSpeed + ' >> Step:' + g_iPlayProgressStep+'>> fastForwardContinuePress:'+g_iFastForwardContinuePress);
+					if(g_iPlayProgress  <= g_iProgramDuration-5){
+						if(g_bIsPlaying) {
+							//播放
+							g_bIsPlaying = true;
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+							var elPlayOrPause = document.getElementById('play_or_pause');
+							removeClass(elPlayOrPause, "pause_common");
+							addClass(elPlayOrPause, "play_common");
+						} else {
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+							g_mediaPlayer.pause();
+							var elPlayOrPause = document.getElementById('play_or_pause');
+							removeClass(elPlayOrPause, "play_common");
+							addClass(elPlayOrPause, "pause_common");
+						}
+					}
+					updateProgressUIByOperator(g_iPlayProgress, g_iProgramDuration);
+					
+					g_bIsPlayingDataLocked = false;
+				}else{
+					if(!g_bIsPlaying){
+						var elPlayOrPause = document.getElementById('play_or_pause');
+						removeClass(elPlayOrPause, "pause_common");
+						addClass(elPlayOrPause, "play_common");
+						g_bIsPlaying = true;
+						g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+						g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+					}
+				}
+				Log.warning('end====' + g_iPlayProgress + ":" + g_iProgramDuration + "=" + g_bIsPlaying + "=>" + g_iSpeed);
+				//g_bIsPlayingDataLocked=false;
+				g_iFastForwardContinuePress = 1;
+			}
+
+			function fastBackwardOnce(bDoPlay) {
+				if(!g_bIsPlayingDataLocked) {
+
+					g_bIsPlayingDataLocked = true;
+
+					if(1 == g_iFastBackwardContinuePress) {
+						if(g_iSpeed * 2 <= g_iMaxSpeedMultiple) {
+							g_iSpeed = parseInt(g_iSpeed) * 2;
+						} else {
+							g_iSpeed = g_iMaxSpeedMultiple; //最大倍数
+						}
+					} else {
+						g_iSpeed = 1;
+					}
+
+					if(0 == g_iFastBackwardContinuePress) {
+						if(!g_bIsPlaying){
+							var elPlayOrPause = document.getElementById('play_or_pause');
+							removeClass(elPlayOrPause, "pause_common");
+							addClass(elPlayOrPause, "play_common");
+							g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+							g_bIsPlaying = true;
+						}
+						g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+						g_oProbe.startTime=g_iPlayProgress;
+						g_bIsPlayForwarding=true;
+					}
+
+					g_iPlayProgress = g_iPlayProgress - g_iSpeed * g_iPlayProgressStep; //Math.pow(2, globalParam.Speed);
+					if(g_iPlayProgress <= 1) {
+						g_iPlayProgress = 1;
+					}
+					Log.info('PlayProgress->' + g_iPlayProgress + ' << Duration:' + g_iProgramDuration + ' << Speed:' + g_iSpeed + ' << Step:' + g_iPlayProgressStep);
+					updateProgressUIByOperator(g_iPlayProgress, g_iProgramDuration);
+
+					if(g_bIsPlaying) {
+
+						g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						var elPlayOrPause = document.getElementById('play_or_pause');
+						//播放
+						removeClass(elPlayOrPause, "pause_common");
+						addClass(elPlayOrPause, "play_common");
+						g_bIsPlaying = true;
+					} else {
+						g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						g_mediaPlayer.pause();
+						var elPlayOrPause = document.getElementById('play_or_pause');
+						removeClass(elPlayOrPause, "play_common");
+						addClass(elPlayOrPause, "pause_common");
+					}
+					Log.info(g_iPlayProgress + ":" + g_iProgramDuration + "=" + bDoPlay + "=>" + g_iSpeed);
+					g_bIsPlayingDataLocked = false;
+
+				}else{
+					if(!g_bIsPlaying){
+						var elPlayOrPause = document.getElementById('play_or_pause');
+						removeClass(elPlayOrPause, "pause_common");
+						addClass(elPlayOrPause, "play_common");
+						g_bIsPlaying = true;
+						g_iPlayProgress = parseInt(g_mediaPlayer.getCurrentPlayTime());
+						g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+					}
+				}
+				g_iFastBackwardContinuePress = 1;
+			}
+
+			function updateProgressUIByOperator(iCurrentTime, iDuration) {
+
+				Log.info("Operator Update:" + iCurrentTime);
+				//字
+				if(iDuration >= 0) {
+					document.getElementById('current_time').innerHTML = formatTimeM(iCurrentTime); //参数为秒数
+				}
+				if(iCurrentTime >= 0) {
+					document.getElementById('total_duration').innerHTML = formatTimeM(iDuration);
+				}
+
+				//进度条
+				var elProgressBarBase = document.getElementById("progress_bar_container");
+				var iWidthOfProgressBarBase = parseInt(
+					(elProgressBarBase.offsetWidth) ?
+					elProgressBarBase.offsetWidth : (getCurrentCSS(elProgressBarBase, "width") + "").replace(/px/, '')
+				);
+				iWidthOfProgressBarBase = iWidthOfProgressBarBase - 14; //1252px
+				document.getElementById("progress_bar_value").style.width = parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration + 14 - 10) + 'px';
+				document.getElementById('progress_focus').style.left //进度条上的圆点
+				= (parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration) - 8) + 'px';
+				var objFocus = document.getElementById('focus_container');
+   				removeClass(objFocus,'smooth_animation_300');
+				if(g_strFocusElementId == 'progress_focus') {
+					document.getElementById("focus_container").style.left = (parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration)+150) + 'px'
+				}
+				if(g_timeouterFocus){
+					window.clearTimeout(g_timeouterFocus);
+				}
+				g_timeouterFocus = window.setTimeout(function(){
+					addClass(objFocus,'smooth_animation_300');
+				},1000);
+			}
+
+			function updateProgressUIByPlayer(iCurrentTime, iDuration) { //更新进度条和时间变化
+				//Log.info("Cur1: "+g_mediaPlayer.getCurrentPlayTime()+ " , Cur2: "+iCurrentTime+ " , Dura: "+iDuration+ " , FocusStatus: "+ g_iFocusStatus);
+				if(!g_bIsPlayingDataLocked) {
+					//Log.info("Player Update:"+iCurrentTime+","+g_bIsPlayingDataLocked);
+					//字
+					if(iDuration >= 0) {
+						document.getElementById('current_time').innerHTML = formatTimeM(iCurrentTime);
+					}
+					if(iCurrentTime >= 0) {
+						document.getElementById('total_duration').innerHTML = formatTimeM(iDuration);
+					}
+					//进度条
+					var elProgressBarBase = document.getElementById("progress_bar_container");
+					var iWidthOfProgressBarBase = parseInt(
+						(elProgressBarBase.offsetWidth) ?
+						elProgressBarBase.offsetWidth : (getCurrentCSS(elProgressBarBase, "width") + "").replace(/px/, '')
+					);
+					iWidthOfProgressBarBase = iWidthOfProgressBarBase - 14;
+					document.getElementById("progress_bar_value").style.width = parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration + 14 - 10) + 'px';
+					document.getElementById('progress_focus').style.left //进度条上的圆点
+					= (parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration) - 8) + 'px';
+					if(g_strFocusElementId == 'progress_focus') {
+						document.getElementById("focus_container").style.left = (parseInt(iCurrentTime * iWidthOfProgressBarBase / iDuration)+150) + 'px';
+					}
+				}
+			}
+
+			function formatTimeVal(val) { //val 为数值
+				var ss = val.toString();
+				if(ss.length == 1) {
+					return "0" + ss;
+				}
+				return ss;
+			}
+
+			function formatTimeM(iInSeconds) {
+				var iMinute = Math.floor(iInSeconds / 60);
+				var iSecond = Math.floor(iInSeconds - iMinute * 60);
+
+				var strMinute = ((iMinute < 10) ? '0' : '') + iMinute;
+				var strSecond = ((iSecond < 10) ? '0' : '') + iSecond;
+				return strMinute + ':' + strSecond;
+			}
+
+			function IP506HInitPlayer() {
+				g_mediaPlayer.setAllowTrickmodeFlag(0); //设置是否允许trick操作。 0:允许 1：不允许
+				g_mediaPlayer.setVideoDisplayMode(videoDisplayMode);
+				g_mediaPlayer.setVideoDisplayArea(left, top, width, height);
+				g_mediaPlayer.setNativeUIFlag(0); //设置播放器本地UI显示功能 0:允许 1:不允许 //测试下来发现貌似是0-不允许 1-允许 盒子是IP906H
+				g_mediaPlayer.setAudioTrackUIFlag(1);
+				g_mediaPlayer.setMuteUIFlag(1);
+				g_mediaPlayer.setAudioVolumeUIFlag(1);
+				g_mediaPlayer.setCycleFlag(1); //0:设置为循环播放（默认值）,1：设置为单次播放
+				//Log.info("完成 setCycleFlag [" + oResult + "]");
+				g_mediaPlayer.refreshVideoDisplay();
+			}
+
+			function initPlayer() {
+				Log.info('============initPlayer=============');
+				try {
+					/*
+					if (g_mediaPlayer && g_mediaPlayer.getNativePlayerInstanceID()){
+					  g_mediaPlayer.stop();
+					  g_mediaPlayer.releaseMediaPlayer();
+					}*/
+
+					g_mediaPlayer = NativeMediaPlayer || new MediaPlayer();
+
+					//Log.info(ShowObjProperty(g_mediaPlayer));
+
+					//var strMediaPlayerInfo=ShowObjProperty(g_mediaPlayer);
+
+					g_mediaPlayerInstanceId = g_mediaPlayer.getNativePlayerInstanceID(); //读取本地的媒体播放实例的标识
+
+					var playListFlag = 0; //Media Player 的播放模式。 0：单媒体的播放模式 (默认值)，1: 播放列表的播放模式
+
+					var videoDisplayMode = 1; //MediaPlayer 对象对应的视频窗口的显示模式. 1: 全屏显示 2: 按宽度显示，3: 按高度显示
+
+					var width = 1280; //parseInt(strWidth);
+					var height = 720; //parseInt(strHeight);
+					var left = 0; // 165;
+					var top = 0; //17;
+					var muteFlag = 0; //0: 设置为有声 (默认值) 1: 设置为静音
+					var useNativeUIFlag = 1; //设置播放器本地UI显示功能 0:允许 1：不允许
+					var subtitleFlag = 0; //字幕显示
+					var videoAlpha = 0; //视频的透明度
+					var cycleFlag = 0;
+					var randomFlag = 0;
+					var autoDelFlag = 0;
+
+					//初始话mediaplayer对象
+					g_mediaPlayer.initMediaPlayer(g_mediaPlayerInstanceId, playListFlag, videoDisplayMode,
+						height, width, left, top, muteFlag, useNativeUIFlag, subtitleFlag, videoAlpha, cycleFlag, randomFlag, autoDelFlag);
+					//Log.info("完成 initMediaPlayer [" + oResult + "]");
+
+					g_mediaPlayer.setAllowTrickmodeFlag(0); //设置是否允许trick操作。 0:允许 1：不允许
+					g_mediaPlayer.setVideoDisplayMode(videoDisplayMode);
+					g_mediaPlayer.setVideoDisplayArea(left, top, width, height);
+					g_mediaPlayer.setNativeUIFlag(0); //设置播放器本地UI显示功能 0:允许 1:不允许 //测试下来发现貌似是0-不允许 1-允许 盒子是IP906H
+					g_mediaPlayer.setAudioTrackUIFlag(1);
+					g_mediaPlayer.setMuteUIFlag(1);
+					g_mediaPlayer.setAudioVolumeUIFlag(1);
+					g_mediaPlayer.setCycleFlag(1); //0:设置为循环播放（默认值）,1：设置为单次播放
+					//Log.info("完成 setCycleFlag [" + oResult + "]");
+					g_mediaPlayer.refreshVideoDisplay();
+					//Log.info("完成 refreshVideoDisplay1 [" + oResult + "]");
+				} catch(err) {
+					Log.error("MediaPlayer初始化错误：" + err);
+				}
+			}
+
+			function destroyMediaPlayer() {
+				try {
+					if(g_mediaPlayer) {
+						//Log.info("Destroying MediaPlayer...");
+						g_mediaPlayer.stop();
+						g_mediaPlayer.releaseMediaPlayer(g_mediaPlayerInstanceId);
+						g_mediaPlayer = null;
+						//Log.info("Destroyed MediaPlayer...[" + g_mediaPlayerInstanceId + "]");
+					}
+				} catch(err) {
+					Log.error("MediaPlayer销毁错误：" + err);
+				}
+			}
+
+			function onMediaCollectionRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						var aCollectPrograms = oJSONResult.resultSet[0];
+						if(aCollectPrograms.collections[0]) {
+							if(aCollectPrograms.collections[0].media_id == g_strId) {
+								if(!hasClass(document.getElementById('collect'), 'collected')) {
+									addClass(document.getElementById('collect'), 'collected');
+								}
+							}
+						} else {
+
+						}
+						Log.info("Business Success : get Media collection success");
+					} else {
+						Log.error("Business Error:get Media collection failed:" + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error("Business Exception:Get Media collection error" + err + ',' + responseText);
+				}
+			}
+
+			function onMediaCollectionRequestError(responseText) {
+				Log.error("Communication Error: Get Media collection Error:" + responseText);
+			}
+
+			function collectOrCancel() {
+				if(!hasClass(document.getElementById(g_strFocusElementId), "collected")) {
+					add2Collection(g_strId);
+				} else {
+					removeFromCollection(g_strId);
+				}
+
+			}
+
+			function add2Collection(strId) {
+				if(g_strCollectionDefaultId != '') {
+					var oAddCollectionParameters = {
+						"view": "json",
+						"mediaId": strId,
+						"collectionId": g_strCollectionDefaultId,
+						'appId': g_strAppId,
+						"token": g_strToken
+					}
+					ajax('GET', TOPDRAW_API_SERVER + 'User/AddMedia2Collection', null, oAddCollectionParameters, onAddCollectionRequestSuccess, onAddCollectionRequestError);
+					// 不再向大厅里收藏
+					/* oAddCollectionParameters.appId = '';
+					oAddCollectionParameters.collectionId = g_strCollectionId;
+					ajax('GET', TOPDRAW_API_SERVER + 'User/AddMedia2Collection', null, oAddCollectionParameters
+						, function (successRes) {
+						}, function (errorRes) {
+							Log.error('removeFav with communication error---' + errorRes);
+						}
+					); */
+					var strEnter = (g_iProgramType == 4 )? 'detail02' : 'detail01';//detail01 电影 detail02 电视剧
+					var strIntent = {
+						"type": "apk",
+						"action": "android.intent.action.MAIN",
+						"package": "com.topdraw.children",
+						"component":{
+							"pkg": "com.topdraw.children",
+							"cls": "com.topdraw.children.MainActivity"
+						},
+						"extras":{
+							"target":{"from":"unified_collection","enter":strEnter,"back":0,"params":{"mediaId":parseInt(g_strId),"episodeId":g_strEpisodeId,"appId":g_strAppId}}
+						}
+					}
+					strIntent = JSON.stringify(JSON.stringify(strIntent));        
+					var strCollectParams = '{"cpPrvName":"优宝乐园","cpPrvCode":"50000028","cpPrvType":1006,"cpLicense":"CNTV","account":"'+getCookie('userId')
+						+'","programSeriesName":"'+g_strMediaName
+						+'","programSeriesId":"'+g_strId
+						+'","programId":"'+g_strEpisodeId
+						+'","seriesNumber":"'+g_iEpisodeIndex
+						+'","imageUrl":"'+(IMAGE_BASE_PATH+g_strMediaImg)
+						+'","intent":'+strIntent
+						+',"collectionFlag":1'
+						+'}';
+					ajax('POST', 'http://111.10.31.198:83/box_api/integration/2.0/cpAddCollection', ['application/json'], strCollectParams, function (successRes) {},function (successRes) {})
+				}
+			}
+
+			function onAddCollectionRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						addClass(document.getElementById("collect"), "collected");
+						g_oProbe.mediaId = g_strId;
+						g_oProbe.code = g_strCode;
+						g_oProbe.action='MediaCollect';
+                    	requestProbe('collect');
+						Log.info('Business Success: Add Song 2 Collection Success');
+					} else {
+						Log.error('Business Error: Add Song 2 Collection failed' + oJSONResult.description);
+					}
+				} catch(err) {
+					Log.error('Business Exception : Add Song 2 Collection error:' + err + ',' + responseText);
+				}
+
+			}
+
+			function onAddCollectionRequestError(responseText) {
+				Log.error('Communication Error: Add Song 2 Collection Error...' + responseText + '!!');
+			}
+
+			function removeFromCollection(strId) {
+				var oRemoveCollectionParameters = {
+					'view': 'json',
+					'mediaId': strId,
+					'collectionId': g_strCollectionDefaultId,
+					'appId': g_strAppId,
+					"token": g_strToken
+				}
+				ajax('GET', TOPDRAW_API_SERVER + 'User/RemoveMediaFromCollection', null, oRemoveCollectionParameters, onRemoveCollectionRequestSuccess, onRemoveCollectionRequestError);
+				/* oRemoveCollectionParameters.appId = '';
+				oRemoveCollectionParameters.collectionId = g_strCollectionId;
+				ajax('GET', TOPDRAW_API_SERVER + 'User/RemoveMediaFromCollection', null, oRemoveCollectionParameters
+					, function (successRes) {
+					}, function (errorRes) {
+						Log.error('removeFav with communication error---' + errorRes);
+					}
+				); */
+				var strEnter = (g_iProgramType == 4 )? 'detail02' : 'detail01';//detail01 电影 detail02 电视剧
+				var strIntent = {
+					"type": "apk",
+					"action": "android.intent.action.MAIN",
+					"package": "com.topdraw.children",
+					"component":{
+						"pkg": "com.topdraw.children",
+						"cls": "com.topdraw.children.MainActivity"
+					},
+					"extras":{
+						"target":{"from":"unified_collection","enter":strEnter,"back":0,"params":{"mediaId":parseInt(g_strId),"episodeId":g_strEpisodeId,"appId":g_strAppId}}
+					}
+				}
+				strIntent = JSON.stringify(JSON.stringify(strIntent));        
+				var strCollectParams = '{"cpPrvName":"优宝乐园","cpPrvCode":"50000028","cpPrvType":1006,"cpLicense":"CNTV","account":"'+getCookie('userId')
+					+'","programSeriesName":"'+g_strMediaName
+					+'","programSeriesId":"'+g_strId
+					+'","programId":"'+g_strEpisodeId
+					+'","seriesNumber":"'+g_iEpisodeIndex
+					+'","imageUrl":"'+(IMAGE_BASE_PATH+g_strMediaImg)
+					+'","intent":'+strIntent
+					+',"collectionFlag":0'
+					+'}';
+				ajax('POST', 'http://111.10.31.198:83/box_api/integration/2.0/cpAddCollection', ['application/json'], strCollectParams, function (successRes) {},function (successRes) {})
+			}
+
+			function onRemoveCollectionRequestSuccess(responseText) {
+				try {
+					var oJSONResult = JSON.parse(responseText);
+					if(oJSONResult.businessCode == "success") {
+						//removeClass(document.getElementById(g_strFocusElementId), "collected");
+						removeClass(document.getElementById("collect"), "collected");
+						g_oProbe.mediaId = g_strId;
+						g_oProbe.code = g_strCode;
+						g_oProbe.action='MediaUncollect';
+                    	requestProbe('collect');
+						Log.info('Business Success: Remove Media from Collection Success');
+					} else {
+						Log.error('Business Error: Remove Media from Collection failed' + responseText);
+					}
+				} catch(err) {
+					Log.error('Business Exception: Remove Media from Collection Error' + err + ',' + responseText);
+				}
+
+			}
+
+			function onRemoveCollectionRequestError(responseText) {
+				Log.error('Communication Error: Remove Media from Collection Error' + responseText);
+			}
+
+			function onGetProgramRequestError(responseText) {
+				Log.error("Communication Error: Get program failed ..." + responseText);
+			}
+
+			function onGetIdsFreeRequestError(responseText) {
+				Log.error('Communication: Get getids Error...' + responseText + '!!');
+			}
+
+			function onGetEpisodeRequestError(responseText) {
+				Log.error("Communication Error: Get Episode failed ..." + responseText);
+			}
+
+			function onGetBookMarkError(responseText) {
+				Log.error("Communication Error: Get Bookmark failed ..." + responseText);
+			}
+
+			function updateVolumeUI(iVolume) { //用于更新 竖直音量UI
+				var elVolumeValue = document.getElementById("volume_level_value"); //设置长度
+				var elVolumeBase = document.getElementById("volume_level_base"); //总长
+
+				var iHeightOfVolumeBase = parseInt( //音量控件的底长
+					(elVolumeBase.offsetHeight) ?
+					elVolumeBase.offsetHeight : (getCurrentCSS(elVolumeBase, "height") + "").replace(/px/, '')
+				);
+				iHeightOfVolumeBase = iHeightOfVolumeBase - 8; //8为圆球的一半
+				elVolumeValue.style.height = (parseInt(iVolume * iHeightOfVolumeBase / 100) + 8) + 'px';
+				elVolumeValue.style.top = (iHeightOfVolumeBase - parseInt(iVolume * iHeightOfVolumeBase / 100) + 8) + 'px';
+				document.getElementById('volume_level_circle').style.top //进度条上的圆点
+				= (iHeightOfVolumeBase - parseInt(iVolume * iHeightOfVolumeBase / 100)) + 'px';
+			}
+
+			function delayDisappearVolumeControl(iDuration) {
+				if(g_timerVolumeControl) {
+					window.clearTimeout(g_timerVolumeControl);
+				}
+				g_timerVolumeControl = window.setTimeout(
+	                function() {
+	                    document.getElementById('volume_control').style.visibility = "hidden";
+	                    window.clearTimeout(g_timerVolumeControl);
+	                },
+	                iDuration
+	            );
+			}
+
+			function delayDisappearPlayControl(iDuration) {
+				if(g_iFocusStatus == 1){return;}
+				if(g_timerPlayControl) {
+					window.clearTimeout(g_timerPlayControl);
+				}
+				g_timerPlayControl = window.setTimeout(
+					function() {
+						Log.warning('g_iHidePlayControl focusId='+g_strFocusElementId);
+						document.getElementById('play_control').style.visibility = "hidden";
+						document.getElementById('volume_control').style.visibility = "hidden";
+						removeClass(document.getElementById(g_strFocusElementId),'cat_focus');
+						g_bIsHidePlayControl = true;
+						g_iFocusStatus = 0;
+						if(!g_bIsPlaying) {
+//							g_iFocusStatus = 2;
+							document.getElementById('play_control').style.visibility = "visible";
+							addClass(document.getElementById(g_strFocusElementId), 'cat_focus');
+						} else {
+							hideFocus();
+							addClass(document.getElementById(g_strFocusElementId), 'cat_focus');
+						}
+						Log.warning('start init================'+iDuration+'==status='+g_iFocusStatus+'==focusId='+g_strFocusElementId);
+						window.clearTimeout(g_timerPlayControl);
+					},
+					iDuration
+				);
+			}
+
+			function forward4detail(strForwardURL, bKeepLocationURL, bKeepFocusELe, strReferURL) {
+				var strPrevPageURL = document.location.href;
+				//Log.info("Original:"+strPrevPageURL);
+				var iFeatureIndex = strPrevPageURL.indexOf(OPERATION_PATH_FEATURE);
+				//Log.info("FeatureIndex:"+iFeatureIndex);
+				if(-1 != iFeatureIndex) { //故障备机和性能备机的路径会不同，特别注意
+					strPrevPageURL = strPrevPageURL.substr(iFeatureIndex + OPERATION_PATH_FEATURE.length); //只取相对路径
+				}
+				//Log.info("After Base Cut to Relative:"+strPrevPageURL);
+
+				//strPrevPageURL 要去除杂七杂八的东西 防止失效的token 和 serverPath等串入
+				strPrevPageURL = cleanEPGURLBackStatus(strPrevPageURL, true);
+
+				var arrReferUrl = strPrevPageURL.split('referURL=');
+				//arrReferUrl[0]是当前页面url
+				var strReferUrl = strPrevPageURL.substr(strPrevPageURL.indexOf('referURL=') + 9); //截取referURL=后面部分
+				strReferUrl = decodeURIComponent(strReferUrl);
+				//播放页referURL肯定是数组
+				if(bKeepLocationURL) {
+					var arrSplitRefer = strReferUrl.substr(0, strReferUrl.lastIndexOf(']') + 1);
+					strReferUrl = strReferUrl.substr(strReferUrl.indexOf(']') + 1);
+					arrSplitRefer = JSON.parse(arrSplitRefer);
+					arrSplitRefer.push(arrReferUrl[0] + 'backStatus=1');
+					strPrevPageURL = JSON.stringify(arrSplitRefer) + strReferUrl;
+
+				} else {
+					//  if(!strReferURL){
+					strPrevPageURL = strReferUrl;
+					// }else {
+					//
+					//	}
+				}
+				//编码一次
+				if(-1 == strForwardURL.indexOf('?')) { //没有问号
+					strForwardURL = strForwardURL + "?referURL=" + encodeURIComponent(strPrevPageURL);
+				} else {
+					strForwardURL = strForwardURL + "&referURL=" + encodeURIComponent(strPrevPageURL);
+				}
+
+				//处理页面上下文 以便回退
+				var strCookiePageContext = getCookie(TOPDRAW_PAGE_CONTEXT_KEY);
+				var oCookiePageContext = null;
+				if(!strCookiePageContext || strCookiePageContext == "") {
+					oCookiePageContext = {
+						pageContext: [],
+						backStatus: false
+					};
+				} else {
+					oCookiePageContext = JSON.parse(strCookiePageContext);
+				}
+
+				var aPageContext = oCookiePageContext.pageContext;
+				if(!g_oPageContext) {
+					g_oPageContext = {};
+				}
+				if(bKeepFocusELe) {
+					g_oPageContext.focusId = g_strFocusElementId; //不管如何记录下光标焦点位置
+					aPageContext.push(g_oPageContext);
+				}
+
+				oCookiePageContext.pageContext = aPageContext;
+				setCookie(TOPDRAW_PAGE_CONTEXT_KEY, JSON.stringify(oCookiePageContext));
+
+				//Log.info(strForwardURL);
+				document.location = strForwardURL;
+			}
+
+			function getURLStringByName(url, name) {
+				var result = url.match(new RegExp("[\?\&]" + name + "=([^\&]+)", "i"));
+				if(result == null || result.length < 1) {
+					return "";
+				}
+				return result[1];
+			}
+
+			function keyLeftBack() {
+				try {
+
+					Log.info('LeftDown');
+					//超时后取消连按状态
+					if(-1 != navigator.appName.toLowerCase().indexOf('fhbw4.4')) {
+						//烽火FiberHome的其中一款妖怪盒子HG680 特殊处理   妈的银河 G2-40也有这个鸟问题
+						//这些个毛盒子妖孽深重，实在无法理解我是如何搞好的，后辈请小心
+						//超时后隐藏播放框
+						//Log.info('do...left');
+						fastBackwardOnce(true);
+						//Log.info('do...left2');
+						if(g_intervalFastBackwardFakePress) {
+							window.clearInterval(g_intervalFastBackwardFakePress);
+						}
+						g_intervalFastBackwardFakePress = window.setInterval(
+							function() {
+								//Log.info("aaaa");
+								fastBackwardOnce(true);
+							}, g_iFakePressInterval); //每隔一段时间按一下
+					} else if(-1 != navigator.appName.toLowerCase().indexOf('yhbrowser')) {
+						fastBackwardOnce(false);
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						g_timerFastBackwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Left:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastBackwardContinuePress = 0;
+								window.clearTimeout(g_timerFastBackwardContinuePress);
+							}, g_iContinueDuration);
+					} else if(-1 != navigator.userAgent.toLowerCase().indexOf('skwebkit-cq-ctc')) {
+						//任公爵的方案，感觉还不错
+						fastBackwardOnce(true);
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						g_timerFastBackwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Left:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastBackwardContinuePress = 0;
+								window.clearTimeout(g_timerFastBackwardContinuePress);
+							}, g_iContinueDuration);
+					} else if(g_bIsZTEB700Box) {
+						//B700的变态方案
+						if(g_iFastBackwardContinuePress) { //是持续按得状态
+							//忽略过去什么都不干。。。
+							//Log.info('In FastBackward ContinuePress');
+						} else {
+							//Log.info('Not FastBackward ContinuePress ');
+							fastBackwardOnce(false);
+							if(g_intervalFastBackwardFakePress) {
+								window.clearInterval(g_intervalFastBackwardFakePress);
+							}
+							g_intervalFastBackwardFakePress = window.setInterval(
+								function() {
+									//Log.info('FB <<');
+									fastBackwardOnce(false);
+								}, g_iFakePressInterval); //每隔一段时间按一下
+						}
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						g_timerFastBackwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Left:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastBackwardContinuePress = 0;
+								if(g_intervalFastBackwardFakePress) {
+									window.clearInterval(g_intervalFastBackwardFakePress);
+								}
+								if(g_timerFastBackwardContinuePress) {
+									window.clearTimeout(g_timerFastBackwardContinuePress);
+								}
+
+							}, g_iContinueDuration
+						);
+					} else if(g_bIsUTBox) {
+						//最普通的方案
+						fastBackwardOnce(false);
+
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						g_timerFastBackwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Left:" + g_iPlayProgress);
+								g_iFastBackwardContinuePress = 0;
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								window.clearTimeout(g_timerFastBackwardContinuePress);
+							}, g_iContinueDuration);
+					} else {
+						//最普通的方案
+						fastBackwardOnce(true);
+
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						g_timerFastBackwardContinuePress = window.setTimeout(
+							function() {
+								g_iFastBackwardContinuePress = 0;
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								window.clearTimeout(g_timerFastBackwardContinuePress);
+							}, g_iContinueDuration);
+					}
+					} catch(err) {
+					Log.error("MediaPlayer播放错误：" + err);
+					}
+			}
+
+			function keyRightForward() {
+				try {
+					Log.info('RightDown');
+					if(-1 != navigator.appName.toLowerCase().indexOf('fhbw4.4')) {
+						//烽火FiberHome的其中一款妖怪盒子HG680 特殊处理  
+						//这些个毛盒子妖孽深重，实在无法理解我是如何搞好的，后辈请小心
+						//Log.info('do...right');
+
+						fastForwardOnce(true);
+
+						//从按下开始要不停模拟按 直到遇到Up弹起
+						if(g_intervalFastForwardFakePress) {
+							window.clearInterval(g_intervalFastForwardFakePress);
+						}
+
+						g_intervalFastForwardFakePress = window.setInterval(
+							function() {
+								fastForwardOnce(true);
+								//Log.info("rrrrrrrrrr");
+							}, g_iFakePressInterval); //每隔一段时间按一下
+					} else if(-1 != navigator.appName.toLowerCase().indexOf('yhbrowser')) {
+						//妈的银河 G2-40也有问题
+						//Log.info('do...right');
+						fastForwardOnce(false);
+
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						g_timerFastForwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Right:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastForwardContinuePress = 0;
+								window.clearTimeout(g_timerFastForwardContinuePress);
+							}, g_iContinueDuration);
+					} else if(-1 != navigator.userAgent.toLowerCase().indexOf('skwebkit-cq-ctc')) {
+
+						//任公爵的方案 还不错
+						fastForwardOnce(true);
+						//超时后取消连按状态
+
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						g_timerFastForwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Right:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastForwardContinuePress = 0;
+								window.clearTimeout(g_timerFastForwardContinuePress);
+							}, g_iContinueDuration
+						);
+					} else if(g_bIsZTEB700Box) {
+
+						if(g_iFastForwardContinuePress) { //是持续按得状态
+							//忽略过去什么都不干。。。
+							//Log.info('In FastBackward ContinuePress');
+						} else {
+							//Log.info('Not FastBackward ContinuePress ');
+							fastForwardOnce(false);
+							if(g_intervalFastForwardFakePress) {
+								window.clearInterval(g_intervalFastForwardFakePress);
+							}
+							g_intervalFastForwardFakePress = window.setInterval(
+								function() {
+									Log.info('FF >>');
+									fastForwardOnce(false);
+								}, g_iFakePressInterval); //每隔一段时间按一下
+						}
+
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						g_timerFastForwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Right:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastForwardContinuePress = 0;
+								if(g_intervalFastForwardFakePress) {
+									window.clearInterval(g_intervalFastForwardFakePress);
+								}
+								if(g_timerFastForwardContinuePress) {
+									window.clearTimeout(g_timerFastForwardContinuePress);
+								}
+
+							}, g_iContinueDuration);
+					} else if(g_bIsUTBox) {
+						//UT测试方案
+						fastForwardOnce(false);
+						//超时后取消连按状态
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						g_timerFastForwardContinuePress = window.setTimeout(
+							function() {
+								g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+								Log.info("Fake KeyUp Right:" + g_iPlayProgress);
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastForwardContinuePress = 0;
+								window.clearTimeout(g_timerFastForwardContinuePress);
+							}, g_iContinueDuration);
+					} else {
+						//最普通的方案
+						fastForwardOnce(true);
+						//超时后取消连按状态
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						g_timerFastForwardContinuePress = window.setTimeout(
+							function() {
+								g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+								g_iFastForwardContinuePress = 0;
+								window.clearTimeout(g_timerFastForwardContinuePress);
+							}, g_iContinueDuration);
+					}
+
+					} catch(error) {
+					Log.error("MediaPlayer播放错误：" + error);
+					}
+			}
+
+			function keyVolUp(flag) {
+				try{
+					if(flag == true) {
+						//音量变大
+						if(g_iVolume + 5 < 100) {
+							g_iVolume = parseInt(g_iVolume) + 5; // parseInt(g_iVolume / 5) * 5 + 5;
+	
+						} else {
+							g_iVolume = 100;
+						}
+					} else {
+						if(g_iVolume - 5 > 0) {
+							g_iVolume = parseInt(g_iVolume) - 5; // parseInt(g_iVolume / 5) * 5 + 5;
+						} else {
+							g_iVolume = 0;
+						}
+					}
+	
+					var volEl = document.getElementById('volume');
+					document.getElementById('play_control').style.visibility = 'visible';
+					document.getElementById('volume_control').style.visibility = "visible";
+					g_mediaPlayer.setVolume(g_iVolume);
+					updateVolumeUI(g_iVolume);
+					//设置界面超时  
+					delayDisappearVolumeControl(g_iHiddenDuration);
+					delayDisappearPlayControl(4000);
+				}catch(err){
+					Log.info('set volum error...' + err);
+				}
+			}
+
+
+			function onPageKeyDown(e) {
+				e = e ? e : window.event;
+				var keyCode = e.which ? e.which : e.keyCode;
+				var bIsContinueBubbling = true;
+				//以下为页面特别的处理 注意函数名一定要是onPageKeyDown
+				//一些焦点的特殊处理.比如不能上下移动需要翻页完以后再移动都在此处实现
+				//状态 0.Page  1.播放列表 2.播放控制 3.音量控制
+				if(keyCode!=KEY['KEY_VIRTUAL_PRESS']){
+		            g_oProbe.updateActive();//探针动作监听更新sessionId等
+		        }
+				if(keyCode == KEY["KEY_VIRTUAL_PRESS"]) { //虚拟按键
+					var currentTime = g_mediaPlayer.getCurrentPlayTime();
+					var kannyEvent = Utility.getEvent(); //获取event对象
+					var kannyParse = eval('(' + kannyEvent + ')'); //为了创维E100
+					Log.info('kannyEvent-->'+kannyEvent);
+					if(kannyParse.type == 'EVENT_MEDIA_END') {
+						/* //if(g_iProgramType==1){
+//						onSongPlayEnd(true);
+						//}
+						Log.info('g_isGoToCycle2--->'+g_isGoToCycle);
+						if(g_isGoToCycle){//当前选中单曲循环 正常结时从头开始播放
+							g_iPlayProgress = 0;
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						}else{
+							g_iMediaDurationGetCount = 0;
+							onSongPlayEnd(true);
+						} */
+					}
+				}
+				if(keyCode == KEY["KEY_6"] && GOD_MODE == 1){
+					requestAddBook(true);
+				}
+				if(keyCode == KEY["KEY_LEFT"] || keyCode == KEY["KEY_UT_LEFT"]) {
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					Log.info('left status=' + g_iFocusStatus);
+					if(g_bIsHidePlayControl){
+						showPlayControl();
+						return;
+					}
+					if(g_iFocusStatus == 0 && g_strFocusElementId == 'progress_focus') {
+						keyLeftBack();
+						delayDisappearPlayControl(g_iHiddenDuration);
+					} else {
+						var elTarget = findFocusTarget(g_aFocusTargets, g_iFocusStatus, "left");
+						if(null == elTarget) {
+							return;
+						}
+						flyFocus(elTarget, "left", g_fScaleFactor, null);
+					}
+				}
+				if(keyCode == KEY["KEY_RIGHT"] || keyCode == KEY["KEY_UT_RIGHT"]) {
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					if(g_bIsHidePlayControl){
+						showPlayControl();
+						return;
+					}
+					if(g_strFocusElementId=='progress_focus') {						
+						keyRightForward();
+						if(g_iFocusStatus==0){
+							delayDisappearPlayControl(g_iHiddenDuration);
+						}
+					} else {
+						var elTarget = findFocusTarget(g_aFocusTargets, g_iFocusStatus, "right");
+						if(null == elTarget) {
+							return;
+						}
+						flyFocus(elTarget, "right", g_fScaleFactor, null);
+					}
+				}
+				if(keyCode == KEY["KEY_UP"] || keyCode == KEY["KEY_UT_UP"]) {
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					if(g_bIsHidePlayControl){
+						showPlayControl();
+						return;
+					}
+					if(g_strFocusElementId == 'progress_focus'){
+						flyFocus(document.getElementById('play_or_pause'), "up", g_fScaleFactor, null);
+						return;
+					}
+					var elTarget = findFocusTarget(g_aFocusTargets, g_iFocusStatus, "up");
+					if(null == elTarget) {
+						return;
+					}
+					flyFocus(elTarget, "up", g_fScaleFactor, null);
+				}
+				if(keyCode == KEY["KEY_DOWN"] || keyCode == KEY["KEY_UT_DOWN"]) {
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					if(g_bIsHidePlayControl){
+						showPlayControl();
+						return;
+					}
+					var elTarget = findFocusTarget(g_aFocusTargets, g_iFocusStatus, "down");
+					if(null == elTarget) {
+						return;
+					}
+					flyFocus(elTarget, "down", g_fScaleFactor, null);
+				}
+				if(keyCode == KEY["KEY_VOL_UP"] || keyCode == KEY["KEY_I"]) { //keydown
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					keyVolUp(true);
+				}
+				if(keyCode == KEY["KEY_VOL_DOWN"] || keyCode == KEY["KEY_K"]) { //keydown
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					keyVolUp(false);
+				}
+				if(keyCode == KEY["KEY_PAUSE_PLAY"]) { //key down
+					if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+					if(g_bIsHidePlayControl){
+						showPlayControl();
+						return;
+					}
+					document.getElementById('play_control').style.visibility = "visible";
+					document.getElementById('volume_control').style.visibility = "hidden";
+					playOrPause();
+					delayDisappearPlayControl(g_iHiddenDuration);
+				}
+				if(keyCode == KEY["KEY_OK"] || keyCode == KEY["KEY_ENTER"]) {
+					if(g_strFocusElementId == 'child_tip_back'){
+						destroyMediaPlayer();
+						backAPage();
+						return;
+					}
+					
+					if(g_bIsHidePlayControl){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						showPlayControl();
+						return;
+					}
+					if(g_strFocusElementId == 'order_button'){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						addCpLog();
+	            		leaveBIProbe('other',g_strId,g_strCode);
+	            		forward("subscribe.html?id="+g_strId+'&episodeId='+g_strEpisodeId);
+	            	}
+					if(g_strFocusElementId == 'on_episode'){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						if(g_strSouhuContent == CONTENT_PROVIDER_ID){
+							removeClass(document.getElementById('sohu_prompt'),'hidden');
+						}
+						onSongPlayEnd(false);
+					}else if(g_strFocusElementId == 'next_episode'){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						if(g_strSouhuContent == CONTENT_PROVIDER_ID){
+							removeClass(document.getElementById('sohu_prompt'),'hidden');
+						}
+						onSongPlayEnd(true);
+					}else if(g_strFocusElementId == 'cycle'){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						Log.info('g_isGoToCycle1--->'+g_isGoToCycle);
+						if(!g_isGoToCycle){
+							g_isGoToCycle = true;
+							removeClass(document.getElementById('cycle'), 'cycle');
+							addClass(document.getElementById('cycle'), 'cycled');
+						}else{
+							g_isGoToCycle = false;
+							removeClass(document.getElementById('cycle'),'cycled');
+							addClass(document.getElementById('cycle'), 'cycle');
+						}
+					}else if(g_strFocusElementId == 'collect'){
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						collectOrCancel();
+					}
+					
+					if(g_iFocusStatus == 0 && g_strFocusElementId == 'play_or_pause') { //播放和暂停
+						if(g_iFocusStatus==1 || 0 >= g_iProgramDuration){return;}
+						document.getElementById('play_control').style.visibility = "visible";
+						document.getElementById('volume_control').style.visibility = "hidden";
+						if(g_iAuthStatus != 1 && g_iPlayProgress == g_iShiboTime) {
+							return;
+						}
+						playOrPause();
+						if(!g_bIsPlaying) {
+//							g_iFocusStatus = 2;
+							document.getElementById('play_control').style.visibility = "visible";
+							document.getElementById('volume_control').style.visibility = "hidden";
+						} else { //play
+							var Duration = 300;
+//							delayDisappearPlayControl(Duration);
+						}
+//                  	delayDisappearPlayControl(g_iHiddenDuration);
+						return;
+					}
+//					if(g_strFocusElementId == 'progress_focus' || g_iFocusStatus == 0) {
+//						if(g_iAuthStatus != 1 && g_iPlayProgress == g_iShiboTime) {
+//							return;
+//						}
+//						Log.info('ok play or pause');
+//						jumpFocus(document.getElementById('play_or_pause'), 1, null);
+//						addClass(document.getElementById(g_strFocusElementId), 'cat_focus');
+//						playOrPause();
+//						if(!g_bIsPlaying) {
+////							g_iFocusStatus = 2;
+//							document.getElementById('play_control').style.visibility = "visible";
+//							document.getElementById('volume_control').style.visibility = "hidden";
+//
+//						} else { //play
+//							var Duration = 300;
+//							delayDisappearPlayControl(Duration);
+//
+//						}
+//					}
+					var elCurrentFocus = document.getElementById(g_strFocusElementId);
+					var strTVLink = "";
+					if(elCurrentFocus) {
+						strTVLink = elCurrentFocus.getAttribute("tvlink");
+
+						if(strTVLink != null && (-1 != strTVLink.indexOf('forward(') || -1 != strTVLink.indexOf('away(') || -1 != strTVLink.indexOf('stride') ||
+								-1 != strTVLink.indexOf('across(') || -1 != strTVLink.indexOf('add2PlayListAndPlay('))) { //要离开页面，就关了
+							destroyMediaPlayer();
+						}
+						if(strTVLink && strTVLink != '') {
+							eval(strTVLink);
+						} else {
+							Log.warning(elCurrentFocus.id + ': tvlink=null');
+						}
+						bIsContinueBubbling = false;
+					}
+				}
+				if(keyCode == KEY["KEY_BACK"]) {
+					g_bIsBackFlag=true;
+					requestAddBook();
+					if(g_bAddBookMarkStatus == false) {
+						bIsContinueBubbling = false;
+					}
+				}
+				return bIsContinueBubbling;
+			}
+			function showOrDisappear(flag){
+				if(flag){//当前显示
+					addClass(document.getElementById('play_control'), 'hidden');
+					addClass(document.getElementById('programNameBox'), 'hidden');
+					hideFocus();
+					g_bIsHidePlayControl = true;
+				}else{//当前隐藏
+					removeClass(document.getElementById('play_control'), 'hidden');
+					removeClass(document.getElementById('programNameBox'), 'hidden');
+					flyFocus(document.getElementById('progress_focus'),"down", g_fScaleFactor, null);
+					g_bIsHidePlayControl = false;
+					showFocus();
+					delayDisappearPlayControl(g_iHiddenDuration);
+				}
+			}
+			function showPlayControl(){
+				if(!hasClass(document.getElementById("mark"),'backgroundType')){return;}
+				document.getElementById('play_control').style.visibility = "visible";
+				removeClass(document.getElementById('programNameBox'), 'hidden');
+				addClass(document.getElementById(g_strFocusElementId),'cat_focus');
+				g_bIsHidePlayControl = false;
+				g_iFocusStatus = 0;
+				if(!g_bIsPlaying) {
+					showFocus();
+					document.getElementById('play_control').style.visibility = "visible";
+					addClass(document.getElementById(g_strFocusElementId), 'cat_focus');
+				} else {
+					showFocus();
+					addClass(document.getElementById(g_strFocusElementId), 'cat_focus');
+				}
+				delayDisappearPlayControl(g_iHiddenDuration);
+			}
+
+			function onPageKeyUp(e) {
+				e = e ? e : window.event;
+				var keyCode = e.which ? e.which : e.keyCode;
+				var bIsContinueBubbling = true;
+
+				//Up区域
+				if(keyCode == KEY["KEY_LEFT"]) { //KEYUP
+					if(g_strFocusElementId == 'progress_focus') {
+						if(g_bIsUTBox || g_bIsZTEB700Box) {
+							Log.info('UTBox or ZTEB700 KeyUp Left return...');
+							return;
+						} //
+
+						//结束持续按键盘的状态并变回颜色
+						if(g_timerFastBackwardContinuePress) {
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}
+						if(g_intervalFastBackwardFakePress) {
+							window.clearInterval(g_intervalFastBackwardFakePress);
+						} //不再持续按键
+
+						Log.info('Real KeyUp:left');
+						/* if(-1 != navigator.userAgent.toLowerCase().indexOf('skwebkit-cq-ctc')) {
+
+						} else if(-1 != navigator.appName.toLowerCase().indexOf('yhbrowser')) {
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						} else if(g_bIsUTBox) {
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						} else {
+							g_bIsPlayingDataLocked = false; //这里抬起才让Player更新 是不是Up了以后就结束了一切 应该不是啊
+						} */
+						//g_bIsPlayingDataLocked=false;  //这里抬起才让Player更新
+						g_timerFastBackwardContinuePress = window.setTimeout(function() {
+							g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+							g_iFastBackwardContinuePress = 0;
+							window.clearTimeout(g_timerFastBackwardContinuePress);
+						}, g_iContinueDuration);
+						delayDisappearPlayControl(g_iHiddenDuration);
+					}
+
+				}
+				if(keyCode == KEY["KEY_RIGHT"]) { //KEYUP
+
+					if(g_strFocusElementId == 'progress_focus') {
+						if(g_bIsUTBox || g_bIsZTEB700Box) {
+							Log.info('UTBox or ZTEB700 KeyUp Right return...');
+							return;
+						} //
+						//结束持续按键盘的状态并变回颜色
+						if(g_timerFastForwardContinuePress) {
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}
+						if(g_intervalFastForwardFakePress) {
+							window.clearInterval(g_intervalFastForwardFakePress);
+						} //不再持续按键
+
+						/* if(-1 != navigator.userAgent.toLowerCase().indexOf('skwebkit-cq-ctc')) { //任公爵的方案
+
+						} else if(-1 != navigator.appName.toLowerCase().indexOf('yhbrowser')) {
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						} else if(-1 != navigator.userAgent.indexOf('JETU')) {
+							g_mediaPlayer.playByTime(1, g_iPlayProgress, 1);
+						} else {
+							g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+						} */
+						g_timerFastForwardContinuePress = window.setTimeout(function() {
+							g_bIsPlayingDataLocked = false; //这里抬起才让Player更新
+							g_iFastForwardContinuePress = 0;
+							window.clearTimeout(g_timerFastForwardContinuePress);
+						}, g_iContinueDuration);
+						//g_bIsPlayingDataLocked=false;  //这里抬起才让Player更新
+						delayDisappearPlayControl(g_iHiddenDuration);
+					}
+
+				}
+				if(keyCode == KEY["KEY_VOL_UP"] || keyCode == KEY["KEY_I"]) { //KEYUP
+					//超时按钮颜色变回来
+					removeClass(document.getElementById("volume_focus"), 'volume_focus');
+					//此处没有加速不需要管理按下状态那个变量
+					if(g_timerVolumnUpContinuePress) {
+						window.clearTimeout(g_timerVolumnUpContinuePress);
+					}
+				}
+				if(keyCode == KEY["KEY_VOL_DOWN"] || keyCode == KEY["KEY_K"]) { //KEYUP
+					//超时按钮颜色变回来
+					removeClass(document.getElementById("volume_focus"), 'volume_focus');
+					//此处没有加速不需要管理按下状态那个变量
+					if(g_timerVolumnDownContinuePress) {
+						window.clearTimeout(g_timerVolumnDownContinuePress);
+					}
+				}
+				if(keyCode == KEY["KEY_OK"] || keyCode == KEY["KEY_ENTER"]) { //KEYUP
+
+					if(2 == g_iFocusStatus) {
+						if(g_timerPlayOrPauseContinuePress) {
+							window.clearTimeout(g_timerPlayOrPauseContinuePress);
+						}
+					}
+				}
+
+				return bIsContinueBubbling;
+			}
+			function onError(){
+				Log.info('onError');
+				if(g_timerPlayControl) {
+					window.clearTimeout(g_timerPlayControl);
+				}
+				g_bDoesProgramDurationGot = false;
+				try{
+					var oFocus = document.getElementById(g_strFocusElementId);
+					if(hasClass(oFocus,'cat_focus')){
+						removeClass(oFocus,'cat_focus');
+					}
+				}catch(err){
+					Log.error('does not init focus...');
+				}
+				
+				addClass(document.getElementById("mark"),'backgroundType');
+				removeClass(document.getElementById("child_mask"),'hidden');
+				g_iFocusStatus = 1;
+				initFocus('child_tip_back', onBeforeFocusChange, onAfterFocusChange);
+				// flyFocus(document.getElementById("child_tip_back"), "up", g_fScaleFactor, null);
+			}
+			function onCompletion(){
+				removeClass(document.getElementById("mark"),'backgroundType');
+				document.getElementById("pageMark").style.opacity = 0;
+				Log.info('g_isGoToCycle3--->'+g_isGoToCycle);
+				hideFocus();
+				if(g_isGoToCycle){//当前选中单曲循环 正常结时从头开始播放	
+					addCpLog(); //先上报上一次播放行为	
+					g_iPlayStartTime=0;
+					g_bDoesProgramDurationGot =false;
+					g_iProgramDuration = 0;
+					g_iPlayProgress = 0;
+					updateProgressUIByPlayer(g_iPlayProgress, g_iProgramDuration);
+					g_mediaPlayer.stop();
+					setPlayUrl2MediaPlayer(g_strPlayURL,g_oMediaInfo.mediaCode,g_oMediaInfo.episodeCode,g_oMediaInfo.fileCode);
+					
+				}else{
+					g_iMediaDurationGetCount = 0;
+					onSongPlayEnd(true);
+				}
+			}
+			var loading ={
+				iconWidth : 107,
+        		iconHeight : 107,
+				loadingPath:"image/vPlayerFullScreenNew/player_loading.png?t="+(new Date()).getTime(),
+				createLoadingIcon : function(left,top,width,height){
+					if(width == 1280){
+						this.iconWidth = 181;
+						this.iconHeight = 181;
+					}
+					//Log.info("创建loading元素");
+					this.loadingIcon = document.createElement("div");
+					document.body.appendChild(this.loadingIcon);
+					addClass(this.loadingIcon,"player_loading_icon");
+					this.loadingIcon.style.position = "absolute";
+					this.loadingIcon.style.zIndex = "10";
+					this.loadingIcon.style.left = (left+(width-this.iconWidth)/2) + "px";
+					this.loadingIcon.style.top = (top+(height-this.iconHeight)/2) + "px";
+					this.loadingIcon.style.width = this.iconWidth + "px";
+					this.loadingIcon.style.height = this.iconHeight + "px";
+					this.loadingIcon.style.backgroundRepeat = "no-repeat";				
+				},
+			
+			/**
+			 * 开始loading动画
+				*/
+				startLoadingAnimation : function(){
+					if(this.loadingIcon){
+						if(this.loadingIcon.timerId){
+							window.clearInterval(this.loadingIcon.timerId);
+						}
+						//Log.info("开启loading动画");
+						var iIndex = 0;
+						var arrPosition = [];
+						//8写死不好，暂时这么写
+						for(var i = 0; i < 8; i++){
+							arrPosition.push("0 -"+this.iconHeight*i);
+						}
+						//var arrPosition = ["0 0","0 -107","0 -214","0 -321","0 -428","0 -535","0 -642","0 -749"];
+						this.loadingIcon.style.backgroundSize = this.iconWidth+"px auto";
+						this.loadingIcon.style.backgroundImage = "url("+this.loadingPath+")";
+						//初始化元素背景样式
+						this.loadingIcon.style.backgroundPosition = arrPosition[iIndex].replace(/(\d+)/g,"$1px");
+						this.loadingIcon.timerId = window.setInterval(function(){
+							if(0 != g_iProgramDuration){
+								loading.cancelLoadingAnimation();
+							}
+							iIndex = iIndex%(arrPosition.length);
+							loading.loadingIcon.style.backgroundPosition = arrPosition[iIndex].replace(/(\d+)/g,"$1px");
+							iIndex++;
+						},170);
+					}
+				
+				},
+				/**
+				 * 放弃loading动画
+				 */
+				cancelLoadingAnimation : function(){
+					// return;
+					//Log.info("取消loading动画");
+					if(this.loadingIcon.timerId){
+						window.clearInterval(this.loadingIcon.timerId);
+						this.loadingIcon.style.backgroundImage = "";
+					}
+					
+				}
+			}
+
+			function addCpLog(){
+				try{
+					if(g_strWatchTime.length <= 0){return;}					
+					var strEndTime = new Date();
+					var iDateDiff = (strEndTime.getTime()-g_strWatchTime.getTime())/1000; //时间戳毫秒转秒
+					var strWathTime = parseFloat(iDateDiff<g_iProgramDuration?(iDateDiff/60):((g_iPlayProgress-g_iPlayStartTime)/60));//排除用户按了暂停等操作导致的播放时长大于视频总时长情况
+					Log.info('WATCH_TIME===>'+strWathTime);
+					strWathTime = (strWathTime>0)?strWathTime:73;//排除时长为0，并方便排查
+					var oCpLog = {
+						SET_TOP_BOX_CODE:g_strStbId, //机顶盒串号 
+						PRODUCT_NAME:g_strProductCode, //产品名称 
+						ORDER_TIME:g_strOrderTime, //订购时间 
+						WATCH_SHOW:encodeURIComponent(g_strMediaName), //观看节目 
+						WATCH_SHOW_TIME:getFormatDate(g_strWatchTime), //观看节目开始时间点 
+						WATCH_END_TIME:getFormatDate(strEndTime), //观看节目结束时间 
+						// WATCH_TIME:(g_iPlayProgress-g_iPlayStartTime)/60, //观看时长 
+						WATCH_TIME:strWathTime, //观看时长 
+						IS_PAID_CONTENT:g_iFreeStatus?0:1,//是否为付费内容  1付费  0免费
+						APK_NAME:encodeURIComponent('优宝乐园') //APK名称 
+					}
+					ajax('GET','http://111.10.31.197/cqbigdata.gif',null,oCpLog,function(){},function(){});
+				}catch(err){}				
+			}
+			function getFormatDate(date) {
+				var seperator1 = "-";
+				var seperator = ":";
+				var year = date.getFullYear();
+				var month = date.getMonth() + 1;
+				var strDate = date.getDate();
+				
+				var strHours = date.getHours();
+				var strMinutes = date.getMinutes();
+				var strSeconds = date.getSeconds();
+
+				if (month >= 1 && month <= 9) {
+					month = "0" + month;
+				}
+				if (strDate >= 0 && strDate <= 9) {
+					strDate = "0" + strDate;
+				}
+				if (strSeconds >= 0 && strSeconds <= 9) {
+					strSeconds = "0" + strSeconds;
+				}
+				var currentdate = year + seperator1 + month + seperator1 + strDate + ' ' + strHours + seperator + strMinutes + seperator + strSeconds;
+				return currentdate;
+	    	}
+		</script>
+		
+
+	</head>
+
+	<body onload="init();">
+		<!--页面模板-->
+		<!--其他推荐横图-->
+		<div id="contactList" class="jsrender_template">
+			<div class="contact_content_container {{:~linkClass}}" id="contact_cell_{{:#index}}" focusstatus="0" tvlink="leaveBIProbe('media',{{:id}},'{{:code}}');forward2detail('{{:id}}','{{urlEncoder:name}}','{{:type}}')">
+				<div class="img_container" style="background: url('{{formaBackground:images}}') no-repeat;"></div>
+				<div id="contact_title_{{:#index}}" class="contact_content_title">
+					<div id="contact_inner_{{:#index}}" class="contact_inner">
+						<div id="contact_first_{{:#index}}" class="contact_first title_width center">{{:name}}</div>
+						<div id="contact_second_{{:#index}}" class="contact_second">{{:name}}</div>
+					</div>
+					<div id="marquee_4ut_{{:#index}}" class="marquee_4ut hidden">
+						<marquee>{{:name}}</marquee>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--电影推荐竖图-->
+		<div id="recommendList" class="jsrender_template">
+			<div id="recommend_content_{{:#index}}">
+				<div class="recommend_content_container {{:~linkClass}}" id="recommend_cell_{{:#index}}" focusstatus="0" tvlink="leaveBIProbe('media',{{:id}},'{{:code}}');forward2detail('{{:id}}','{{urlEncoder:name}}','{{:type}}')">
+					<div class="recommendList_img" style="background: url('{{formatImage:images}}') no-repeat;"></div>
+					<div id="recommend_title_{{:#index}}" class="recommend_content_title">
+						<div id="recommend_inner_{{:#index}}" class="recommend_inner">
+							<div id="recommend_first_{{:#index}}" class="recommend_first center center recommend_titleWidth">{{:name}}</div>
+							<div id="recommend_second_{{:#index}}" class="recommend_second">{{:name}}</div>
+						</div>
+						<div id="marquee_4ut_{{:#index}}" class="marquee_4utt hidden">
+							<marquee>{{:name}}</marquee>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--电影推荐-->
+		<div class="sohu_prompt hidden" id="sohu_prompt">
+			<div class="sohu_logo"></div>
+		</div>
+		<!--非会员-->
+		<div class="mark" id="mark">
+			<div id="pageMark" style="opacity: 0;">
+				<div class="programName" id="programNameBox">正在播放：<span id="programName"></span></div>
+				<div id="go_order" class="hidden">
+					<div class="tryTitle" id="tryTitle"></div>
+					<div class="order_button focusable" id="order_button" focusstatus="0"></div>
+				</div>
+				<!--播放控制区域-->
+				<div class="play_control hidden" id="play_control">
+					<!--进度条-->
+					<div class="progress_bar_container" id="progress_bar_container">
+						<div id="progress_bar_value_left" class="progress_bar_value_left"></div>
+						<div class="progress_bar_value" id="progress_bar_value"></div>
+						<div id="progress_bar_value_right" class="progress_bar_value_right"></div>
+					</div>
+					<div class="progress_focus focusable" id="progress_focus" focusstatus="0"></div>
+					<!--暂停/播放-->
+					<div class="play_or_pause play_common focusable" id="play_or_pause" focusstatus="0"></div>
+					<!--上一集-->
+					<div class="on_episode focusable" id="on_episode" focusstatus="0"></div>
+					<!--下一集-->
+					<div class="next_episode focusable" id="next_episode" focusstatus="0"></div>
+					<!--循环-->
+					<div class="cycle focusable" id="cycle" focusstatus="0"></div>
+					<!--收藏-->
+					<div class="collect focusable" id="collect" focusstatus="0"></div>
+					<!--时长-->
+					<div class="duration">
+						<div id="current_time" class="current_time">00:00</div>
+						<div class="duration_slash">/</div>
+						<div id="total_duration" class="total_duration">00:00</div>
+						<div class="clearfix"></div>
+					</div>
+				</div>
+				<!-- 音量控制条 -->
+				<div id="volume_control" class="volume_control">
+					<div id="volume_level_circle" class="volume_level_circle"></div>
+					<div id="volume_level_container" class="volume_level_container">
+						<div id="volume_level_base" class="volume_level_base"></div>
+						<div id="volume_level_value" class="volume_level_value"></div>
+					</div>
+				</div>
+				<!--相关推荐横图-->
+				<div class="contact hidden" id="contact">
+					<div class="contact_title" id="contact_title">相关推荐</div>
+					<div id="contact_content">
+						<!-- 插入模板 -->
+					</div>
+				</div>
+				<!--相关推荐竖图-->
+				<div class="recommend_vertical hidden" id="recommend_vertical">
+					<div class="contact_title" id="recommend_title">相关推荐</div>
+					<div id="recommend_contact">
+						<!--插入模板-->
+					</div>
+				</div>
+
+				<!-- 友好提示 -->
+				<div class="friendlyPrompt hidden" id="friendlyPrompt">
+					<div class="friendlyFocus focusable" focusstatus="1" id="friendlyFocus" tvlink="back2Index()"></div>
+				</div>
+			</div>
+
+			<!-- 播放出错弹框 -->
+			<div id="child_mask" class="hidden">
+				<div id="child_tip">
+					<div id="child_tip_p">该节目已下线</div>
+					<div id="child_tip_back" class="child_tip_back focusable" focusstauts="1"></div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		function probeInit() {
+			var elScript = document.createElement('script');
+			elScript.src = 'js/bi.js';
+			elScript.async = 1;
+			document.body.appendChild(elScript);
+		}
+
+		function addEventLoad(fn) {
+			var fnOriginOnload = window.onload;
+			if(typeof window.onload != 'function') {
+				window.onload = fn;
+			} else {
+				window.onload = function() {
+					fnOriginOnload();
+					fn();
+				}
+			}
+		}
+		addEventLoad(probeInit);
+	</script>
+<script type="text/javascript" src="js/cq.probe.js?v=1"></script>
+</html>
